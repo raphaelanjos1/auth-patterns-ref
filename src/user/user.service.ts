@@ -6,6 +6,7 @@ import {
 import { HashingService } from '../shared/hashing/hashing.service';
 import { UserRepository } from './user.repository';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { FindAllUsersQueryDto } from './dto/find-all-users-query.dto';
 
 @Injectable()
@@ -45,6 +46,12 @@ export class UserService {
         totalPages: Math.ceil(total / pageSize),
       },
     };
+  }
+
+  async update(id: string, dto: UpdateUserDto) {
+    await this.findById(id);
+
+    return this.userRepository.update(id, dto);
   }
 
   async create(dto: CreateUserDto) {

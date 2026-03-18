@@ -47,6 +47,14 @@ export class UserRepository {
     return { data, total };
   }
 
+  async update(id: string, data: Prisma.UserUpdateInput) {
+    return this.prisma.client.user.update({
+      where: { id },
+      data,
+      omit: { passwordHash: true },
+    });
+  }
+
   async create(data: Prisma.UserCreateInput) {
     return this.prisma.client.user.create({
       data,
