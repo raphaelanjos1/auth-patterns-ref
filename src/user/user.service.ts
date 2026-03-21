@@ -54,6 +54,12 @@ export class UserService {
     return this.userRepository.update(id, dto);
   }
 
+  async delete(id: string) {
+    await this.findById(id);
+
+    return this.userRepository.delete(id);
+  }
+
   async create(dto: CreateUserDto) {
     const existingUser = await this.userRepository.findByEmail(dto.email);
 

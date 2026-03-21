@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -33,6 +34,12 @@ export class UserController {
   @CheckPermissions({ action: Action.UPDATE, subject: Subject.USER })
   update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
     return this.userService.update(id, dto);
+  }
+
+  @Delete(':id')
+  @CheckPermissions({ action: Action.DELETE, subject: Subject.USER })
+  delete(@Param('id') id: string) {
+    return this.userService.delete(id);
   }
 
   @Post()
