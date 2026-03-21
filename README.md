@@ -102,3 +102,4 @@ Documentacoes detalhadas estao disponiveis na pasta `docs/`:
 - [Autenticacao JWT](docs/jwt-authentication.md)
 - [Medidas de Seguranca](docs/security.md)
 - [Prisma Migrations](docs/prisma-migrations.md)
+- [Autorizacao](docs/authorization.md)
