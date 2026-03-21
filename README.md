@@ -95,6 +95,12 @@ A API estara disponivel em `http://localhost:3000`.
 | `npm run test:e2e`   | Executa testes end-to-end       |
 | `npm run lint`       | Executa o linter                |
 
+## API Docs (Swagger)
+
+Com a aplicacao rodando, acesse a documentacao interativa em `http://localhost:3000/docs`.
+
+Um arquivo `swagger.json` tambem e gerado automaticamente na raiz do projeto ao iniciar a aplicacao.
+
 ## Documentacao
 
 Documentacoes detalhadas estao disponiveis na pasta `docs/`:
