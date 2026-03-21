@@ -5,6 +5,7 @@ import { HashingModule } from '../shared/hashing/hashing.module';
 import { AuthRepository } from './auth.repository';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
+import { AbilityFactory } from './authorization/ability-factory';
 
 @Module({
   imports: [
@@ -16,7 +17,8 @@ import { AuthController } from './auth.controller';
       signOptions: { expiresIn: '5m' },
     }),
   ],
-  providers: [AuthRepository, AuthService],
+  providers: [AuthRepository, AuthService, AbilityFactory],
   controllers: [AuthController],
+  exports: [AbilityFactory],
 })
 export class AuthModule {}
