@@ -1,9 +1,12 @@
 import { Body, Controller, Post } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { SignInDto } from './dto/sign-in.dto';
 import { Public } from './public.decorator';
+import { SwaggerApiTags } from '../shared/swagger/api-tags.enum';
 
+@ApiTags(SwaggerApiTags.AUTH)
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}

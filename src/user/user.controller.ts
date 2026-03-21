@@ -8,12 +8,15 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { Action, CheckPermissions, Subject } from '../auth/authorization';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { FindAllUsersQueryDto } from './dto/find-all-users-query.dto';
+import { SwaggerApiTags } from '../shared/swagger/api-tags.enum';
 
+@ApiTags(SwaggerApiTags.USERS)
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}

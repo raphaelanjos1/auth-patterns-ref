@@ -3,7 +3,8 @@
     "allow": [
       "Bash(timeout 5 yarn start)",
       "Bash(yarn build:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npx nest:*)"
     ]
   }
 }
