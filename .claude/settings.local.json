@@ -4,7 +4,10 @@
       "Bash(timeout 5 yarn start)",
       "Bash(yarn build:*)",
       "Bash(npx tsc:*)",
-      "Bash(npx nest:*)"
+      "Bash(npx nest:*)",
+      "Bash(npx jest:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npx prettier:*)"
     ]
   }
 }
