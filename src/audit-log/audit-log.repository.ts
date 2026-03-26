@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { AuditAction } from '@generated/prisma';
+import type { AuditAction, Prisma } from '@generated/prisma';
 import { PrismaService } from '../shared/database/prisma.service';
 
 @Injectable()
@@ -10,7 +10,7 @@ export class AuditLogRepository {
     action: AuditAction;
     entityId?: string;
     userId?: string;
-    metadata?: Record<string, unknown>;
+    metadata?: Prisma.InputJsonValue;
   }) {
     return this.prisma.client.auditLog.create({ data });
   }

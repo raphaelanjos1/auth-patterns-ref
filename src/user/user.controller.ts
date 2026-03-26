@@ -9,7 +9,7 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
-import { Request } from 'express';
+import type { Request } from 'express';
 import { ApiTags } from '@nestjs/swagger';
 import { Action, CheckPermissions, Subject } from '../auth/authorization';
 import { UserService } from './user.service';

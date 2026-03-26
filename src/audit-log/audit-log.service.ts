@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import type { AuditAction } from '@generated/prisma';
+import type { AuditAction, Prisma } from '@generated/prisma';
 import { AuditLogRepository } from './audit-log.repository';
 import { AUDIT_EVENT, AuditEvent } from './events/audit.event';
 
@@ -17,7 +17,7 @@ export class AuditLogService {
         action: event.action as AuditAction,
         entityId: event.entityId ?? undefined,
         userId: event.userId ?? undefined,
-        metadata: event.metadata ?? undefined,
+        metadata: (event.metadata as Prisma.InputJsonValue) ?? undefined,
       });
     } catch (error) {
       this.logger.error('Failed to write audit log', error);
