@@ -7,7 +7,9 @@ import {
   Patch,
   Post,
   Query,
+  Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { ApiTags } from '@nestjs/swagger';
 import { Action, CheckPermissions, Subject } from '../auth/authorization';
 import { UserService } from './user.service';
@@ -35,19 +37,19 @@ export class UserController {
 
   @Patch(':id')
   @CheckPermissions({ action: Action.UPDATE, subject: Subject.USER })
-  update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
-    return this.userService.update(id, dto);
+  update(@Param('id') id: string, @Body() dto: UpdateUserDto, @Req() req: Request) {
+    return this.userService.update(id, dto, req['user']?.sub);
   }
 
   @Delete(':id')
   @CheckPermissions({ action: Action.DELETE, subject: Subject.USER })
-  delete(@Param('id') id: string) {
-    return this.userService.delete(id);
+  delete(@Param('id') id: string, @Req() req: Request) {
+    return this.userService.delete(id, req['user']?.sub);
   }
 
   @Post()
   @CheckPermissions({ action: Action.CREATE, subject: Subject.USER })
-  create(@Body() dto: CreateUserDto) {
-    return this.userService.create(dto);
+  create(@Body() dto: CreateUserDto, @Req() req: Request) {
+    return this.userService.create(dto, req['user']?.sub);
   }
 }

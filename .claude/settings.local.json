@@ -7,7 +7,9 @@
       "Bash(npx nest:*)",
       "Bash(npx jest:*)",
       "Bash(npx eslint:*)",
-      "Bash(npx prettier:*)"
+      "Bash(npx prettier:*)",
+      "Bash(yarn add:*)",
+      "Bash(npx prisma:*)"
     ]
   }
 }

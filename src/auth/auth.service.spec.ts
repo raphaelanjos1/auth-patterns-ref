@@ -1,15 +1,18 @@
 import { UnauthorizedException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { AuthRepository } from './auth.repository';
 import { HashingService } from '../shared/hashing/hashing.service';
+import { AUDIT_EVENT, AuditEvent } from '../audit-log/events/audit.event';
 
 describe('AuthService', () => {
   let service: AuthService;
   let authRepository: jest.Mocked<AuthRepository>;
   let hashingService: jest.Mocked<HashingService>;
   let jwtService: jest.Mocked<JwtService>;
+  let eventEmitter: jest.Mocked<EventEmitter2>;
 
   const mockUser = {
     id: 'user-1',
@@ -35,6 +38,10 @@ describe('AuthService', () => {
           provide: JwtService,
           useValue: { signAsync: jest.fn() },
         },
+        {
+          provide: EventEmitter2,
+          useValue: { emit: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -42,6 +49,7 @@ describe('AuthService', () => {
     authRepository = module.get<jest.Mocked<AuthRepository>>(AuthRepository);
     hashingService = module.get<jest.Mocked<HashingService>>(HashingService);
     jwtService = module.get<jest.Mocked<JwtService>>(JwtService);
+    eventEmitter = module.get<jest.Mocked<EventEmitter2>>(EventEmitter2);
   });
 
   describe('signIn', () => {
@@ -88,6 +96,36 @@ describe('AuthService', () => {
         dto.password,
         mockUser.passwordHash,
       );
+    });
+
+    it('should emit AUTH_LOGIN audit event after successful sign-in', async () => {
+      authRepository.findByEmailWithPassword.mockResolvedValue(mockUser);
+      hashingService.verify.mockResolvedValue(true);
+      jwtService.signAsync.mockResolvedValue('jwt-token');
+
+      await service.signIn(dto);
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        AUDIT_EVENT,
+        new AuditEvent('AUTH_LOGIN', mockUser.id, mockUser.id, {
+          email: mockUser.email,
+        }),
+      );
+    });
+
+    it('should not emit audit event when user is not found', async () => {
+      authRepository.findByEmailWithPassword.mockResolvedValue(null);
+
+      await expect(service.signIn(dto)).rejects.toThrow(UnauthorizedException);
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
+    });
+
+    it('should not emit audit event when password is invalid', async () => {
+      authRepository.findByEmailWithPassword.mockResolvedValue(mockUser);
+      hashingService.verify.mockResolvedValue(false);
+
+      await expect(service.signIn(dto)).rejects.toThrow(UnauthorizedException);
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
     });
   });
 });

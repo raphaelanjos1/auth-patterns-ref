@@ -25,3 +25,21 @@ model User {
   passwordHash String
   role         UserRole @default(USER)
 }
+
+enum AuditAction {
+  USER_CREATED
+  USER_UPDATED
+  USER_DELETED
+  AUTH_LOGIN
+}
+
+model AuditLog {
+  id        String      @id @default(uuid())
+  action    AuditAction
+  entityId  String?     @map("entity_id")
+  userId    String?     @map("user_id")
+  metadata  Json?
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  @@map("audit_log")
+}

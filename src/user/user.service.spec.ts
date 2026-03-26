@@ -1,14 +1,17 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service';
 import { UserRepository } from './user.repository';
 import { HashingService } from '../shared/hashing/hashing.service';
+import { AUDIT_EVENT, AuditEvent } from '../audit-log/events/audit.event';
 import { UserRole } from './dto/create-user.dto';
 
 describe('UserService', () => {
   let service: UserService;
   let userRepository: jest.Mocked<UserRepository>;
   let hashingService: jest.Mocked<HashingService>;
+  let eventEmitter: jest.Mocked<EventEmitter2>;
 
   const mockUser = {
     id: 'user-1',
@@ -36,12 +39,17 @@ describe('UserService', () => {
           provide: HashingService,
           useValue: { hash: jest.fn() },
         },
+        {
+          provide: EventEmitter2,
+          useValue: { emit: jest.fn() },
+        },
       ],
     }).compile();
 
     service = module.get(UserService);
     userRepository = module.get<jest.Mocked<UserRepository>>(UserRepository);
     hashingService = module.get<jest.Mocked<HashingService>>(HashingService);
+    eventEmitter = module.get<jest.Mocked<EventEmitter2>>(EventEmitter2);
   });
 
   describe('findById', () => {
@@ -170,6 +178,36 @@ describe('UserService', () => {
 
       expect(hashingService.hash).toHaveBeenCalledWith(createDto.password);
     });
+
+    it('should emit USER_CREATED audit event after creation', async () => {
+      const createdUser = {
+        id: 'user-2',
+        fullName: createDto.fullName,
+        email: createDto.email,
+        role: createDto.role,
+      };
+      userRepository.findByEmail.mockResolvedValue(null);
+      hashingService.hash.mockResolvedValue('hashed-password');
+      userRepository.create.mockResolvedValue(createdUser);
+
+      await service.create(createDto, 'admin-1');
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        AUDIT_EVENT,
+        new AuditEvent('USER_CREATED', 'user-2', 'admin-1', {
+          fullName: createDto.fullName,
+          email: createDto.email,
+          role: createDto.role,
+        }),
+      );
+    });
+
+    it('should not emit audit event when creation fails', async () => {
+      userRepository.findByEmail.mockResolvedValue(mockUser);
+
+      await expect(service.create(createDto)).rejects.toThrow(ConflictException);
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
+    });
   });
 
   describe('update', () => {
@@ -195,6 +233,30 @@ describe('UserService', () => {
       );
       expect(userRepository.update).not.toHaveBeenCalled();
     });
+
+    it('should emit USER_UPDATED audit event with changes', async () => {
+      userRepository.findById.mockResolvedValue(mockUser);
+      userRepository.update.mockResolvedValue({
+        ...mockUser,
+        fullName: 'John Updated',
+      });
+
+      await service.update('user-1', updateDto, 'admin-1');
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        AUDIT_EVENT,
+        new AuditEvent('USER_UPDATED', 'user-1', 'admin-1', {
+          changes: [{ field: 'fullName', from: 'John Doe', to: 'John Updated' }],
+        }),
+      );
+    });
+
+    it('should not emit audit event when user is not found', async () => {
+      userRepository.findById.mockResolvedValue(null);
+
+      await expect(service.update('nonexistent', updateDto)).rejects.toThrow(NotFoundException);
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
+    });
   });
 
   describe('delete', () => {
@@ -214,6 +276,29 @@ describe('UserService', () => {
         NotFoundException,
       );
       expect(userRepository.delete).not.toHaveBeenCalled();
+    });
+
+    it('should emit USER_DELETED audit event with user snapshot', async () => {
+      userRepository.findById.mockResolvedValue(mockUser);
+      userRepository.delete.mockResolvedValue(mockUser);
+
+      await service.delete('user-1', 'admin-1');
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        AUDIT_EVENT,
+        new AuditEvent('USER_DELETED', 'user-1', 'admin-1', {
+          fullName: mockUser.fullName,
+          email: mockUser.email,
+          role: mockUser.role,
+        }),
+      );
+    });
+
+    it('should not emit audit event when user is not found', async () => {
+      userRepository.findById.mockResolvedValue(null);
+
+      await expect(service.delete('nonexistent')).rejects.toThrow(NotFoundException);
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
     });
   });
 });
