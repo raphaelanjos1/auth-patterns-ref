@@ -109,3 +109,4 @@ Documentacoes detalhadas estao disponiveis na pasta `docs/`:
 - [Medidas de Seguranca](docs/security.md)
 - [Prisma Migrations](docs/prisma-migrations.md)
 - [Autorizacao](docs/authorization.md)
+- [Auditoria](docs/audit-log.md)
