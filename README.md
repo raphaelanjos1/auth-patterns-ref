@@ -8,8 +8,11 @@ Projeto construido com [NestJS](https://nestjs.com/) seguindo arquitetura modula
 
 ```
 src/
-├── auth/           # Autenticacao (JWT, guards, login)
-├── user/           # CRUD de usuarios
+├── identity/       # Bounded context Identity
+│   ├── authentication/  # JWT, guards, login
+│   ├── authorization/   # RBAC + policy map
+│   └── user/            # CRUD de usuarios
+├── audit-log/      # Eventos de auditoria
 └── shared/
     ├── database/   # Prisma service
     └── hashing/    # Hashing de senhas (Argon2)

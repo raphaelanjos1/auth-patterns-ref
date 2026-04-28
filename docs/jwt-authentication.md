@@ -86,7 +86,7 @@ Atualmente protege todas as rotas do modulo `user`.
 
 ```typescript
 import { UseGuards } from '@nestjs/common';
-import { AuthGuard } from '../auth/auth.guard';
+import { AuthGuard } from '../identity/authentication/auth.guard';
 
 @UseGuards(AuthGuard)
 @Controller('exemplo')
@@ -153,14 +153,16 @@ modulos sem precisar importar o `JwtModule` novamente.
 ## Estrutura de arquivos
 
 ```
-src/auth/
-  auth.module.ts        — Modulo com JwtModule, DatabaseModule, HashingModule
-  auth.controller.ts    — POST /auth/sign-in
-  auth.service.ts       — Logica de validacao e geracao do token
-  auth.repository.ts    — Busca de user com passwordHash (para verificacao)
-  auth.guard.ts         — Guard que valida o Bearer token
-  dto/
-    sign-in.dto.ts      — Validacao do body de sign-in
+src/identity/
+  identity.module.ts                    — Modulo unificado (JwtModule, DatabaseModule, HashingModule)
+  user.repository.ts                    — Repositorio unico do agregado User (inclui findByEmailWithPassword)
+  authentication/
+    auth.controller.ts                  — POST /auth/sign-in
+    auth.service.ts                     — Logica de validacao e geracao do token
+    auth.guard.ts                       — Guard que valida o Bearer token
+    public.decorator.ts                 — Marca rotas publicas (bypass do AuthGuard)
+    dto/
+      sign-in.dto.ts                    — Validacao do body de sign-in
 ```
 
 ## Testando

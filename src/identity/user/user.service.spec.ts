@@ -2,9 +2,9 @@ import { ConflictException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service';
-import { UserRepository } from './user.repository';
-import { HashingService } from '../shared/hashing/hashing.service';
-import { AUDIT_EVENT, AuditEvent } from '../audit-log/events/audit.event';
+import { UserRepository } from '../user.repository';
+import { HashingService } from '../../shared/hashing/hashing.service';
+import { AUDIT_EVENT, AuditEvent } from '../../audit-log/events/audit.event';
 import { UserRole } from './dto/create-user.dto';
 
 describe('UserService', () => {

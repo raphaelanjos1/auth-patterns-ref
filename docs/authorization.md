@@ -52,7 +52,7 @@ Request com Bearer token
 | User:UPDATE   |  ✅   |   ✅    |  ❌  |
 | User:DELETE   |  ✅   |   ❌    |  ❌  |
 
-Definida em `src/auth/authorization/policy-map.ts`:
+Definida em `src/identity/authorization/policy-map.ts`:
 
 ```typescript
 export const POLICY_MAP: Record<UserRole, Permission[]> = {
@@ -76,7 +76,7 @@ export const POLICY_MAP: Record<UserRole, Permission[]> = {
 Aplique o decorator `@CheckPermissions` na rota:
 
 ```typescript
-import { Action, CheckPermissions, Subject } from '../auth/authorization';
+import { Action, CheckPermissions, Subject } from '../identity/authorization';
 
 @Controller('user')
 export class UserController {
@@ -163,7 +163,7 @@ O guard:
 ## Estrutura de arquivos
 
 ```
-src/auth/authorization/
+src/identity/authorization/
   index.ts                      — Barrel exports
   action.enum.ts                — Enum de acoes (CREATE, READ, UPDATE, DELETE)
   subject.enum.ts               — Enum de recursos (USER)

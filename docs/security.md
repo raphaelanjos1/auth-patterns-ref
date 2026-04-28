@@ -37,7 +37,7 @@ Restringe quais dominios podem fazer requisicoes a API. Apenas as origens listad
 
 ## 3. Rate Limiting (Throttler)
 
-**Arquivos:** `src/app.module.ts`, `src/auth/auth.controller.ts`
+**Arquivos:** `src/app.module.ts`, `src/identity/authentication/auth.controller.ts`
 
 ### Limites globais (todas as rotas)
 
@@ -84,7 +84,7 @@ Exemplo: se o DTO aceita `email` e `password`, enviar `{ "email": "...", "passwo
 
 ## 5. Autenticacao JWT com Guard Global
 
-**Arquivos:** `src/auth/auth.guard.ts`, `src/app.module.ts`
+**Arquivos:** `src/identity/authentication/auth.guard.ts`, `src/app.module.ts`
 
 O `AuthGuard` e registrado globalmente via `APP_GUARD`, garantindo que **todas as rotas sao protegidas por padrao**. Apenas rotas marcadas explicitamente com o decorator `@Public()` ficam acessiveis sem autenticacao.
 
@@ -96,7 +96,7 @@ O token JWT e enviado pelo cliente no header `Authorization: Bearer <token>` e v
 
 ## 6. Hashing de Senhas com Argon2
 
-**Arquivo:** `src/auth/hashing.service.ts`
+**Arquivo:** `src/shared/hashing/hashing.service.ts`
 
 As senhas dos usuarios sao armazenadas utilizando o algoritmo Argon2, que e resistente a ataques de GPU e considerado o estado da arte em hashing de senhas.
 

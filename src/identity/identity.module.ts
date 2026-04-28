@@ -2,9 +2,11 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { DatabaseModule } from '../shared/database/database.module';
 import { HashingModule } from '../shared/hashing/hashing.module';
-import { AuthRepository } from './auth.repository';
-import { AuthService } from './auth.service';
-import { AuthController } from './auth.controller';
+import { UserRepository } from './user.repository';
+import { AuthController } from './authentication/auth.controller';
+import { AuthService } from './authentication/auth.service';
+import { UserController } from './user/user.controller';
+import { UserService } from './user/user.service';
 import { AbilityFactory } from './authorization/ability-factory';
 
 @Module({
@@ -17,8 +19,13 @@ import { AbilityFactory } from './authorization/ability-factory';
       signOptions: { expiresIn: '5m' },
     }),
   ],
-  providers: [AuthRepository, AuthService, AbilityFactory],
-  controllers: [AuthController],
+  providers: [
+    UserRepository,
+    AuthService,
+    UserService,
+    AbilityFactory,
+  ],
+  controllers: [AuthController, UserController],
   exports: [AbilityFactory],
 })
-export class AuthModule {}
+export class IdentityModule {}

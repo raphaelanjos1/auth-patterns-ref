@@ -7,6 +7,12 @@ import { PrismaService } from '../shared/database/prisma.service';
 export class UserRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  async findByEmailWithPassword(email: string) {
+    return this.prisma.client.user.findUnique({
+      where: { email },
+    });
+  }
+
   async findById(id: string) {
     return this.prisma.client.user.findUnique({
       where: { id },
