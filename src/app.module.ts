@@ -5,7 +5,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuditLogModule } from './audit-log/audit-log.module';
-import { AuthGuard } from './identity/authentication/auth.guard';
+import { AuthGuard } from './identity/auth.guard';
 import { IdentityModule } from './identity/identity.module';
 import { PermissionsGuard } from './identity/authorization';
 
