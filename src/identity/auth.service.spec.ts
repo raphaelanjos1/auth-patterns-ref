@@ -3,7 +3,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserRole } from '@generated/prisma';
 import { AuthService } from './auth.service';
-import { AUDIT_EVENT } from '../audit-log/events/audit.event';
+import { AUDIT_EVENT } from '../shared/events/audit.event';
 import { USER_REPOSITORY } from './domain/ports/user.repository.port';
 import { PASSWORD_HASHER } from './domain/ports/password-hasher.port';
 import { TOKEN_ISSUER } from './domain/ports/token-issuer.port';

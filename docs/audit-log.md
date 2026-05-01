@@ -129,7 +129,7 @@ O listener utiliza `try/catch` para capturar qualquer erro durante a escrita do 
 3. No service relevante, emita o evento:
 
 ```typescript
-import { AUDIT_EVENT, AuditEvent } from '../audit-log/events/audit.event';
+import { AUDIT_EVENT, AuditEvent } from '../shared/events/audit.event';
 
 this.eventEmitter.emit(
   AUDIT_EVENT,

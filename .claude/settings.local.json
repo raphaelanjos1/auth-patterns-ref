@@ -10,7 +10,8 @@
       "Bash(npx prettier:*)",
       "Bash(yarn add:*)",
       "Bash(npx prisma:*)",
-      "Bash(yarn test *)"
+      "Bash(yarn test *)",
+      "Bash(yarn lint *)"
     ]
   }
 }

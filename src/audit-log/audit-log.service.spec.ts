@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuditLogService } from './audit-log.service';
 import { AuditLogRepository } from './audit-log.repository';
-import { AuditEvent } from './events/audit.event';
+import { AuditEvent } from '../shared/events/audit.event';
 
 describe('AuditLogService', () => {
   let service: AuditLogService;

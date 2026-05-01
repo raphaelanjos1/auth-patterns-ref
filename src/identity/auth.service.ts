@@ -1,6 +1,6 @@
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { AUDIT_EVENT, AuditEvent } from '../audit-log/events/audit.event';
+import { AUDIT_EVENT, AuditEvent } from '../shared/events/audit.event';
 import {
   USER_REPOSITORY,
   type IUserRepository,
