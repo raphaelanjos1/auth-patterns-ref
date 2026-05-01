@@ -37,7 +37,11 @@ export class UserController {
 
   @Patch(':id')
   @CheckPermissions({ action: Action.UPDATE, subject: Subject.USER })
-  update(@Param('id') id: string, @Body() dto: UpdateUserDto, @Req() req: Request) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateUserDto,
+    @Req() req: Request,
+  ) {
     return this.userService.update(id, dto, req['user']?.sub);
   }
 

@@ -55,7 +55,13 @@ export class User {
     const fullName = User.normalizeName(input.fullName);
     const email = Email.create(input.email);
     const passwordHash = await hasher.hash(input.password);
-    const user = new User(randomUUID(), fullName, email, passwordHash, input.role);
+    const user = new User(
+      randomUUID(),
+      fullName,
+      email,
+      passwordHash,
+      input.role,
+    );
     user.events.push(
       new UserCreatedEvent(user.id, performedBy, {
         fullName: user._fullName,

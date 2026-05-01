@@ -21,7 +21,15 @@ interface HasherMock {
   verify: jest.Mock;
 }
 
-function makeUser(overrides: Partial<{ id: string; fullName: string; email: string; passwordHash: string; role: UserRole }> = {}): User {
+function makeUser(
+  overrides: Partial<{
+    id: string;
+    fullName: string;
+    email: string;
+    passwordHash: string;
+    role: UserRole;
+  }> = {},
+): User {
   return User.rehydrate({
     id: 'user-1',
     fullName: 'John Doe',
@@ -106,19 +114,32 @@ describe('UserService', () => {
           role: 'ADMIN',
         },
       ]);
-      expect(result.meta).toEqual({ total: 1, page: 1, pageSize: 10, totalPages: 1 });
+      expect(result.meta).toEqual({
+        total: 1,
+        page: 1,
+        pageSize: 10,
+        totalPages: 1,
+      });
     });
 
     it('defaults page to 1 and pageSize to 10', async () => {
       repo.findAll.mockResolvedValue({ data: [], total: 0 });
       await service.findAll({});
-      expect(repo.findAll).toHaveBeenCalledWith({ skip: 0, take: 10, search: undefined });
+      expect(repo.findAll).toHaveBeenCalledWith({
+        skip: 0,
+        take: 10,
+        search: undefined,
+      });
     });
 
     it('caps pageSize at 100', async () => {
       repo.findAll.mockResolvedValue({ data: [], total: 0 });
       await service.findAll({ pageSize: 500 });
-      expect(repo.findAll).toHaveBeenCalledWith({ skip: 0, take: 100, search: undefined });
+      expect(repo.findAll).toHaveBeenCalledWith({
+        skip: 0,
+        take: 100,
+        search: undefined,
+      });
     });
 
     it('calculates totalPages correctly', async () => {
@@ -130,7 +151,9 @@ describe('UserService', () => {
     it('passes search param to repository', async () => {
       repo.findAll.mockResolvedValue({ data: [], total: 0 });
       await service.findAll({ search: 'john' });
-      expect(repo.findAll).toHaveBeenCalledWith(expect.objectContaining({ search: 'john' }));
+      expect(repo.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({ search: 'john' }),
+      );
     });
   });
 
@@ -196,7 +219,9 @@ describe('UserService', () => {
     it('updates the user when found', async () => {
       repo.findById.mockResolvedValue(makeUser());
 
-      const result = await service.update('user-1', { fullName: 'John Updated' });
+      const result = await service.update('user-1', {
+        fullName: 'John Updated',
+      });
 
       expect(result.fullName).toBe('John Updated');
       expect(repo.save).toHaveBeenCalledTimes(1);
@@ -204,7 +229,9 @@ describe('UserService', () => {
 
     it('throws NotFoundException when user does not exist', async () => {
       repo.findById.mockResolvedValue(null);
-      await expect(service.update('x', { fullName: 'X' })).rejects.toThrow(NotFoundException);
+      await expect(service.update('x', { fullName: 'X' })).rejects.toThrow(
+        NotFoundException,
+      );
       expect(repo.save).not.toHaveBeenCalled();
     });
 
@@ -219,7 +246,11 @@ describe('UserService', () => {
           action: 'USER_UPDATED',
           entityId: 'user-1',
           userId: 'admin-1',
-          metadata: { changes: [{ field: 'fullName', from: 'John Doe', to: 'John Updated' }] },
+          metadata: {
+            changes: [
+              { field: 'fullName', from: 'John Doe', to: 'John Updated' },
+            ],
+          },
         }),
       );
     });
@@ -232,7 +263,9 @@ describe('UserService', () => {
 
     it('does not emit when user not found', async () => {
       repo.findById.mockResolvedValue(null);
-      await expect(service.update('x', { fullName: 'Y' })).rejects.toThrow(NotFoundException);
+      await expect(service.update('x', { fullName: 'Y' })).rejects.toThrow(
+        NotFoundException,
+      );
       expect(eventEmitter.emit).not.toHaveBeenCalled();
     });
   });

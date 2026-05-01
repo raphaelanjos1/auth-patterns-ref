@@ -17,8 +17,13 @@ interface RepoMock {
   delete: jest.Mock;
 }
 
-interface HasherMock { hash: jest.Mock; verify: jest.Mock }
-interface TokenMock { issue: jest.Mock }
+interface HasherMock {
+  hash: jest.Mock;
+  verify: jest.Mock;
+}
+interface TokenMock {
+  issue: jest.Mock;
+}
 
 function makeUser(): User {
   return User.rehydrate({
@@ -112,7 +117,10 @@ describe('AuthService', () => {
 
       await service.signIn(dto);
 
-      expect(hasher.verify).toHaveBeenCalledWith('password123', 'hashed-password');
+      expect(hasher.verify).toHaveBeenCalledWith(
+        'password123',
+        'hashed-password',
+      );
     });
 
     it('emits AUTH_LOGIN audit event after successful sign-in', async () => {

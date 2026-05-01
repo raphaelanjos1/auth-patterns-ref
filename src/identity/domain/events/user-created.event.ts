@@ -7,7 +7,11 @@ export class UserCreatedEvent extends DomainEvent {
   constructor(
     public readonly entityId: string,
     public readonly performedBy: string | null,
-    private readonly snapshot: { fullName: string; email: string; role: UserRole },
+    private readonly snapshot: {
+      fullName: string;
+      email: string;
+      role: UserRole;
+    },
   ) {
     super();
   }

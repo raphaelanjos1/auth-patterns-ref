@@ -8,7 +8,9 @@ import { UserUpdatedEvent } from './events/user-updated.event';
 import { UserDeletedEvent } from './events/user-deleted.event';
 import { UserSignedInEvent } from './events/user-signed-in.event';
 
-const fakeHasher = (overrides: Partial<IPasswordHasher> = {}): IPasswordHasher => ({
+const fakeHasher = (
+  overrides: Partial<IPasswordHasher> = {},
+): IPasswordHasher => ({
   hash: jest.fn().mockResolvedValue('hashed'),
   verify: jest.fn().mockResolvedValue(true),
   ...overrides,
@@ -29,7 +31,12 @@ describe('User entity', () => {
     it('creates a user, hashes password, emits UserCreatedEvent', async () => {
       const hasher = fakeHasher();
       const user = await User.register(
-        { fullName: ' Jane ', email: 'JANE@Example.com', password: 'pw', role: 'USER' as UserRole },
+        {
+          fullName: ' Jane ',
+          email: 'JANE@Example.com',
+          password: 'pw',
+          role: 'USER' as UserRole,
+        },
         hasher,
         'admin-1',
       );
@@ -48,7 +55,12 @@ describe('User entity', () => {
     it('rejects empty full name', async () => {
       await expect(
         User.register(
-          { fullName: '   ', email: 'a@b.com', password: 'x', role: 'USER' as UserRole },
+          {
+            fullName: '   ',
+            email: 'a@b.com',
+            password: 'x',
+            role: 'USER' as UserRole,
+          },
           fakeHasher(),
         ),
       ).rejects.toThrow(InvalidUserNameError);
@@ -57,7 +69,12 @@ describe('User entity', () => {
     it('rejects invalid email', async () => {
       await expect(
         User.register(
-          { fullName: 'X', email: 'not-an-email', password: 'x', role: 'USER' as UserRole },
+          {
+            fullName: 'X',
+            email: 'not-an-email',
+            password: 'x',
+            role: 'USER' as UserRole,
+          },
           fakeHasher(),
         ),
       ).rejects.toThrow(InvalidEmailError);
@@ -67,7 +84,10 @@ describe('User entity', () => {
   describe('authenticate', () => {
     it('emits UserSignedInEvent on success', async () => {
       const user = makeUser();
-      await user.authenticate('pw', fakeHasher({ verify: jest.fn().mockResolvedValue(true) }));
+      await user.authenticate(
+        'pw',
+        fakeHasher({ verify: jest.fn().mockResolvedValue(true) }),
+      );
 
       const events = user.pullEvents();
       expect(events).toHaveLength(1);
@@ -77,7 +97,10 @@ describe('User entity', () => {
     it('throws InvalidCredentialsError on bad password', async () => {
       const user = makeUser();
       await expect(
-        user.authenticate('wrong', fakeHasher({ verify: jest.fn().mockResolvedValue(false) })),
+        user.authenticate(
+          'wrong',
+          fakeHasher({ verify: jest.fn().mockResolvedValue(false) }),
+        ),
       ).rejects.toThrow(InvalidCredentialsError);
 
       expect(user.pullEvents()).toHaveLength(0);
@@ -147,7 +170,12 @@ describe('User entity', () => {
   describe('pullEvents', () => {
     it('drains accumulated events and clears the buffer', async () => {
       const user = await User.register(
-        { fullName: 'X', email: 'x@y.com', password: 'p', role: 'USER' as UserRole },
+        {
+          fullName: 'X',
+          email: 'x@y.com',
+          password: 'p',
+          role: 'USER' as UserRole,
+        },
         fakeHasher(),
       );
       expect(user.pullEvents()).toHaveLength(1);
