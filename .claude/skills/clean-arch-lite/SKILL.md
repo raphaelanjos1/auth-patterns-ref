@@ -1,29 +1,40 @@
 ---
 name: clean-arch-lite
 description: >
-  Pragmatic clean architecture for NestJS modules. Splits domain (entity, VO,
-  events, ports) from infrastructure (Prisma, JWT, argon2 adapters) without
-  over-layering. Use when user wants clean architecture, dependency inversion,
-  port/adapter, hexagonal architecture, testable services, isolated business
-  logic, or asks how to structure a NestJS module to avoid framework coupling.
-  Includes anti-bloat rules — when NOT to add a layer, interface, or mapper.
-  Do NOT use for strategic DDD context mapping or pure architectural planning
-  outside the module level.
+  Pragmatic clean architecture for TypeScript modules using DI containers
+  (NestJS, Fastify+tsyringe, Express+awilix, Inversify). Splits domain
+  (entity, VO, events, ports) from infrastructure (ORM, hashing, JWT,
+  HTTP adapters) without over-layering. Use when user wants clean
+  architecture, dependency inversion, port/adapter, hexagonal architecture,
+  testable services, isolated business logic, or asks how to structure a
+  module to avoid framework coupling. Includes anti-bloat rules — when NOT
+  to add a layer, interface, or mapper. Do NOT use for strategic DDD
+  context mapping or pure architectural planning outside the module level.
 ---
 
-# Clean Arch Lite — NestJS
+# Clean Arch Lite
 
 Pragmatic clean architecture. Goal: business logic isolated, DI everywhere, testable. Anti-goal: 10 files per string field.
 
+Default framework in examples is NestJS, but the principles transfer to any DI-capable TS stack (tsyringe, awilix, Inversify).
+
 ## Core Premise
 
-Three principles, in order of priority:
+Three principles, in priority order:
 
-1. **Business logic isolated** — domain layer zero deps on `@nestjs/*`, `@prisma/*`, hashing/jwt libs.
+1. **Business logic isolated** — domain layer has zero deps on framework (`@nestjs/*`), ORM (`@prisma/*`, `typeorm`), crypto/auth/HTTP libs.
 2. **Dependency injection** — application services depend on **ports** (interfaces), not concrete infra.
-3. **Testability** — domain compiles + tests run without DI container.
+3. **Testability** — domain compiles + tests run without booting a DI container.
 
 Everything else is overhead. Add only when it serves these three.
+
+## Workflow
+
+| Intent | Load |
+|--------|------|
+| "how do I structure a module / clean arch / hexagonal?" | SKILL.md only |
+| "show me an entity / port / adapter / test example" | + [reference.md](reference.md) |
+| "is this over-engineered? how many layers do I need?" | + [anti-patterns.md](anti-patterns.md) |
 
 ## Module Layout
 
@@ -43,7 +54,7 @@ src/<module>/
 └── <module>.module.ts           # binds ports → adapters
 ```
 
-**Flat application layer.** Sub-folders only for: `domain/`, `infrastructure/`, `dto/`, cross-cutting mechanisms (e.g. `authorization/`). Sub-folder per feature implies sub-context — only valid if true bounded context split.
+**Flat application layer.** Sub-folders only for: `domain/`, `infrastructure/`, `dto/`, cross-cutting mechanisms (e.g., `authorization/`). Sub-folder per feature implies sub-context — only valid if true bounded context split.
 
 ## Decision Trees
 
@@ -57,7 +68,7 @@ NO otherwise. Use the concrete class.
 YES if there is validation OR comparison behavior (`Email.create`, `Money.add`).
 NO if it is just a wrapped primitive with no behavior. Keep the primitive (`passwordHash: string`).
 
-### Need a use-case-class (`CreateUserUseCase`)?
+### Need a use-case class (`ConfirmOrderUseCase`)?
 
 NO. Use a method on the application service.
 Split only when method exceeds ~50 lines OR has multiple distinct variants.
@@ -68,69 +79,38 @@ NO. Application = controllers + services + DTOs at module root.
 
 ### Need a mapper class?
 
-NO. Single `toDomain(row)` + `toPersistence()` lives on the entity / inside the repository adapter. Never one mapper per field.
-
-## Domain Rules
-
-- Entity owns state + behavior. No public setters. Methods named in domain language (`changeRole`, not `setRole`).
-- Entity factories for creation: `User.register(input, hasher)` static. Constructor private.
-- Rehydration factory for repo: `User.rehydrate(row)` static.
-- Domain events: entity pushes to private `events: object[]`, app service drains via `pullEvents()` after persist, then publishes.
-- Invariants enforced **inside** the entity. Service may pre-check (e.g., uniqueness via repo) but the entity is the last line of defense.
-- Entity exposes `toPersistence()` (for repo) and `toJSON()` (for HTTP serialization). Avoid leaking VOs / private fields through controller responses.
-
-## Infrastructure Rules
-
-- Adapter classes implement port interfaces. NestJS `@Injectable()`, constructor injection.
-- Repository adapter is the **only** place importing Prisma.
-- Other adapters wrap external libs (argon2 → `IPasswordHasher`, JwtService → `ITokenIssuer`). Wrappers are 5-10 lines each.
-
-## DI Wiring
-
-- Port = `Symbol` token + `interface`. Both exported from same `*.port.ts` file.
-- Module providers: `{ provide: USER_REPOSITORY, useClass: PrismaUserRepository }`.
-- Application service: `constructor(@Inject(USER_REPOSITORY) private repo: IUserRepository) {}`.
-- Never use string magic for tokens. Symbol prevents collisions.
+NO. Single `rehydrate(row)` static + `toPersistence()` instance method on the entity. Repo adapter calls them. Never one mapper per field.
 
 ## Anti-Bloat Rules
 
-- Adding 1 string field = 4 files: Prisma schema + entity + repo mapping + DTO. Acceptable. If you find yourself touching 8+, you over-layered.
+Headlines (full before/after in [anti-patterns.md](anti-patterns.md)):
+
+- Adding 1 field = ~4 files (schema + entity + repo mapping + DTO). Acceptable. If you touched 8+, you over-layered.
 - No mapper-per-field. No DTO-per-internal-state.
 - No interface-per-class. Only at infra boundaries.
 - No abstract base classes "for future extension." YAGNI.
 - No empty `index.ts` barrels. Direct imports.
+- No use-case class per method.
+- No sub-folder per feature inside one module.
 
-## Example: Anemic → Rich
+## DI Wiring (essentials)
 
-Before (service holds invariant):
-```ts
-async create(dto) {
-  if (await repo.findByEmail(dto.email)) throw new ConflictException();
-  const hash = await hasher.hash(dto.password);
-  return repo.create({ ...dto, passwordHash: hash });
-}
-```
+- Port = `Symbol` token + `interface`, both exported from the same `*.port.ts` file.
+- Module providers: `{ provide: ORDER_REPOSITORY, useClass: PrismaOrderRepository }`.
+- Service injects the port: `constructor(@Inject(ORDER_REPOSITORY) private repo: IOrderRepository) {}`.
+- Never use string magic for tokens. Symbol prevents collisions.
 
-After (entity owns invariant + emits event):
-```ts
-async create(dto, performedBy?) {
-  if (await repo.findByEmail(dto.email)) throw new ConflictException();
-  const user = await User.register(dto, hasher);  // entity factory
-  await repo.save(user);
-  for (const e of user.pullEvents()) bus.emit(AUDIT, toAudit(e, performedBy));
-  return user;
-}
-```
+For non-NestJS stacks the binding syntax differs (tsyringe `container.register`, awilix `asClass`), but the port + token + adapter shape is the same.
 
 ## Final Checklist
 
 Before considering refactor done:
 
-- [ ] `grep -r '@nestjs\|@prisma\|argon2\|jsonwebtoken' src/<module>/domain/` returns zero matches
-- [ ] Domain entity has methods named in domain language (no `setX`)
-- [ ] Application service depends on ports (`@Inject(SYMBOL_TOKEN)`), not concrete infra classes
-- [ ] One repository adapter per aggregate, only place with Prisma
-- [ ] Domain entity unit tests run **without** `Test.createTestingModule`
+- [ ] Domain folder has zero imports from framework, ORM, or external libs (grep the dep names you actually use)
+- [ ] Domain entity methods named in domain language (no `setX`)
+- [ ] Application service depends on ports (DI tokens), not concrete infra classes
+- [ ] One repository adapter per aggregate, only place importing the ORM
+- [ ] Domain entity unit tests run without booting the DI container
 - [ ] Adding a new field touched ≤4 files
 
 ## When NOT To Use This Pattern
