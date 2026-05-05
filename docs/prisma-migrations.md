@@ -1,27 +1,27 @@
-# Prisma Migrations - Guia de Uso
+# Prisma Migrations - Usage Guide
 
-## Comandos principais
+## Main commands
 
-| Comando | Quando usar |
-|---------|------------|
-| `yarn prisma migrate dev --name descricao` | Criar e aplicar uma migration em dev |
-| `yarn prisma migrate reset` | Resetar o banco e reaplicar todas as migrations |
-| `yarn prisma generate` | Regenerar o Prisma Client (migrate dev ja faz isso) |
-| `yarn prisma migrate deploy` | Aplicar migrations pendentes em staging/producao |
+| Command | When to use |
+|---------|-------------|
+| `yarn prisma migrate dev --name description` | Create and apply a migration in dev |
+| `yarn prisma migrate reset` | Reset the database and reapply all migrations |
+| `yarn prisma generate` | Regenerate the Prisma Client (migrate dev already does this) |
+| `yarn prisma migrate deploy` | Apply pending migrations in staging/production |
 
-## Fluxo padrao: alterar o schema
+## Standard flow: changing the schema
 
-1. Editar `prisma/schema.prisma`
-2. Rodar `yarn prisma migrate dev --name descricao_da_mudanca`
-3. Verificar o arquivo SQL gerado em `prisma/migrations/`
-4. Commitar o schema e a migration juntos
+1. Edit `prisma/schema.prisma`
+2. Run `yarn prisma migrate dev --name description_of_change`
+3. Check the generated SQL file in `prisma/migrations/`
+4. Commit the schema and migration together
 
-O `migrate dev` ja roda `generate` automaticamente, entao o Prisma Client
-estara atualizado apos o comando.
+`migrate dev` already runs `generate` automatically, so the Prisma Client
+will be up to date after the command.
 
-## Nomeacao de migrations
+## Migration naming
 
-Usar nomes descritivos em snake_case:
+Use descriptive names in snake_case:
 
 ```bash
 yarn prisma migrate dev --name create_user_table
@@ -33,44 +33,44 @@ yarn prisma migrate dev --name create_post_and_comment_tables
 
 | | `db push` | `migrate dev` |
 |---|-----------|--------------|
-| Cria arquivo de migration | Nao | Sim |
-| Historico rastreavel | Nao | Sim |
-| Ideal para | Prototipacao rapida | Desenvolvimento real |
-| Seguro para producao | Nao | Sim (via `migrate deploy`) |
+| Creates migration file | No | Yes |
+| Traceable history | No | Yes |
+| Ideal for | Rapid prototyping | Real development |
+| Safe for production | No | Yes (via `migrate deploy`) |
 
-**Nao misture os dois.** Usar `db push` depois de ter migrations causa drift
-(o banco fica fora de sincronia com o historico de migrations).
+**Do not mix the two.** Using `db push` after having migrations causes drift
+(the database falls out of sync with the migration history).
 
-## Resolvendo problemas comuns
+## Resolving common issues
 
 ### Drift detected
 
-Acontece quando o banco foi alterado fora do fluxo de migrations (ex: `db push` manual).
+Happens when the database was changed outside the migration flow (e.g., manual `db push`).
 
 ```bash
-# Em dev, resetar resolve:
+# In dev, resetting resolves it:
 yarn prisma migrate reset
 ```
 
 ### Migration failed to apply
 
-Se uma migration falhar no meio:
+If a migration fails midway:
 
-1. Corrigir o problema (schema ou banco)
-2. Marcar como resolvida: `yarn prisma migrate resolve --applied NOME_DA_MIGRATION`
-3. Ou resetar em dev: `yarn prisma migrate reset`
+1. Fix the problem (schema or database)
+2. Mark as resolved: `yarn prisma migrate resolve --applied MIGRATION_NAME`
+3. Or reset in dev: `yarn prisma migrate reset`
 
-### Preciso alterar uma migration ja criada
+### I need to change an already created migration
 
-- **Se ainda nao foi commitada/compartilhada:** delete a pasta da migration e rode `migrate dev` novamente
-- **Se ja foi compartilhada:** crie uma nova migration com a correcao
+- **If not yet committed/shared:** delete the migration folder and run `migrate dev` again
+- **If already shared:** create a new migration with the fix
 
-## Producao
+## Production
 
-Em producao, nunca use `migrate dev` ou `migrate reset`. Use apenas:
+In production, never use `migrate dev` or `migrate reset`. Only use:
 
 ```bash
 yarn prisma migrate deploy
 ```
 
-Este comando aplica migrations pendentes sem interatividade e sem resetar dados.
+This command applies pending migrations without interactivity and without resetting data.

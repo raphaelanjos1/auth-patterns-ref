@@ -1,39 +1,37 @@
-# Autorizacao (RBAC com permissoes granulares)
+# Authorization (RBAC with granular permissions)
 
-## Visao geral
+## Overview
 
-O sistema de autorizacao utiliza um modelo **RBAC with Permissions** — as roles
-do usuario sao mapeadas para permissoes discretas (action + subject), e a
-decisao de acesso e baseada nessas permissoes, nao na role diretamente.
+The authorization system uses an **RBAC with Permissions** model — user roles are mapped to discrete permissions (action + subject), and access decisions are based on those permissions, not the role directly.
 
-Isso permite que a matriz de permissoes evolua sem alterar guards ou controllers.
+This allows the permission matrix to evolve without changing guards or controllers.
 
-## Conceitos
+## Concepts
 
-| Conceito       | Descricao                                                   | Exemplo                          |
-|----------------|-------------------------------------------------------------|----------------------------------|
-| **Action**     | Operacao que pode ser realizada                             | `CREATE`, `READ`, `UPDATE`, `DELETE` |
-| **Subject**    | Recurso sobre o qual a acao e realizada                     | `User`                           |
-| **Policy Map** | Matriz declarativa que define permissoes por role           | `ADMIN → [CREATE, READ, ...]`    |
-| **Ability**    | Objeto gerado para um usuario com metodos `can`/`cannot`   | `ability.can(READ, User) → true` |
-| **Guard**      | Protege endpoints verificando permissoes via ability        | `PermissionsGuard`               |
+| Concept        | Description                                                      | Example                          |
+|----------------|------------------------------------------------------------------|----------------------------------|
+| **Action**     | Operation that can be performed                                  | `CREATE`, `READ`, `UPDATE`, `DELETE` |
+| **Subject**    | Resource on which the action is performed                        | `User`                           |
+| **Policy Map** | Declarative matrix that defines permissions per role             | `ADMIN → [CREATE, READ, ...]`    |
+| **Ability**    | Object generated for a user with `can`/`cannot` methods          | `ability.can(READ, User) → true` |
+| **Guard**      | Protects endpoints by checking permissions via ability           | `PermissionsGuard`               |
 
-## Fluxo de autorizacao
+## Authorization flow
 
 ```
-Request com Bearer token
+Request with Bearer token
         |
         v
    AuthGuard
-   (valida JWT, injeta request.user com { sub, email, role })
+   (validates JWT, injects request.user with { sub, email, role })
         |
         v
    PermissionsGuard
-        |--- Le metadata @CheckPermissions do endpoint
-        |--- Se nao tem metadata, permite acesso (rota sem restricao)
-        |--- Extrai role do request.user
-        |--- Chama AbilityFactory.createForRole(role)
-        |--- Verifica ability.can(action, subject)
+        |--- Reads @CheckPermissions metadata from the endpoint
+        |--- If no metadata, allows access (unrestricted route)
+        |--- Extracts role from request.user
+        |--- Calls AbilityFactory.createForRole(role)
+        |--- Checks ability.can(action, subject)
         |
     +---+---+
     |       |
@@ -43,7 +41,7 @@ Request com Bearer token
   200     403 Forbidden
 ```
 
-## Matriz de permissoes atual
+## Current permission matrix
 
 | Action / Role | ADMIN | MANAGER | USER |
 |---------------|:-----:|:-------:|:----:|
@@ -52,7 +50,7 @@ Request com Bearer token
 | User:UPDATE   |  ✅   |   ✅    |  ❌  |
 | User:DELETE   |  ✅   |   ❌    |  ❌  |
 
-Definida em `src/identity/authorization/policy-map.ts`:
+Defined in `src/identity/authorization/policy-map.ts`:
 
 ```typescript
 export const POLICY_MAP: Record<UserRole, Permission[]> = {
@@ -71,9 +69,9 @@ export const POLICY_MAP: Record<UserRole, Permission[]> = {
 };
 ```
 
-## Como proteger um endpoint
+## How to protect an endpoint
 
-Aplique o decorator `@CheckPermissions` na rota:
+Apply the `@CheckPermissions` decorator to the route:
 
 ```typescript
 import { Action, CheckPermissions, Subject } from '../identity/authorization';
@@ -94,14 +92,14 @@ export class UserController {
 }
 ```
 
-Rotas **sem** `@CheckPermissions` sao acessiveis a qualquer usuario autenticado
-(o `PermissionsGuard` permite acesso quando nao encontra metadata).
+Routes **without** `@CheckPermissions` are accessible to any authenticated user
+(the `PermissionsGuard` allows access when no metadata is found).
 
-## Componentes
+## Components
 
 ### Action (`action.enum.ts`)
 
-Enum com as operacoes disponiveis:
+Enum with available operations:
 
 ```typescript
 export enum Action {
@@ -114,7 +112,7 @@ export enum Action {
 
 ### Subject (`subject.enum.ts`)
 
-Enum com os recursos do sistema:
+Enum with system resources:
 
 ```typescript
 export enum Subject {
@@ -122,11 +120,11 @@ export enum Subject {
 }
 ```
 
-Para adicionar um novo recurso, basta incluir no enum e expandir o `POLICY_MAP`.
+To add a new resource, simply include it in the enum and expand the `POLICY_MAP`.
 
 ### AbilityFactory (`ability-factory.ts`)
 
-Servico injetavel que gera um objeto `Ability` a partir da role do usuario:
+Injectable service that generates an `Ability` object from the user's role:
 
 ```typescript
 const ability = abilityFactory.createForRole('MANAGER');
@@ -137,47 +135,45 @@ ability.cannot(Action.DELETE, Subject.USER); // true
 
 ### CheckPermissions (`check-permissions.decorator.ts`)
 
-Decorator que define o `PermissionRequirement` (action + subject) como metadata
-da rota, consumido pelo `PermissionsGuard`.
+Decorator that sets the `PermissionRequirement` (action + subject) as route metadata, consumed by the `PermissionsGuard`.
 
 ### PermissionsGuard (`permissions.guard.ts`)
 
-Guard global registrado em `AppModule` via `APP_GUARD`. Ordem de execucao
-dos guards globais:
+Global guard registered in `AppModule` via `APP_GUARD`. Global guard execution order:
 
 ```
-1. AuthGuard        → valida JWT
-2. PermissionsGuard → verifica permissoes
+1. AuthGuard        → validates JWT
+2. PermissionsGuard → checks permissions
 3. ThrottlerGuard   → rate limiting
 ```
 
-O guard:
+The guard:
 
-1. Le o `PermissionRequirement` do metadata da rota via `Reflector`
-2. Se nao ha metadata, retorna `true` (rota sem restricao de permissao)
-3. Extrai o usuario de `request['user']` (injetado pelo `AuthGuard`)
-4. Gera a `Ability` via `AbilityFactory.createForRole(user.role)`
-5. Verifica `ability.can(action, subject)`
-6. Retorna `403 Forbidden` se o usuario nao tem permissao
+1. Reads the `PermissionRequirement` from route metadata via `Reflector`
+2. If no metadata, returns `true` (route without permission restriction)
+3. Extracts the user from `request['user']` (injected by `AuthGuard`)
+4. Generates the `Ability` via `AbilityFactory.createForRole(user.role)`
+5. Checks `ability.can(action, subject)`
+6. Returns `403 Forbidden` if the user lacks permission
 
-## Estrutura de arquivos
+## File structure
 
 ```
 src/identity/authorization/
-  index.ts                      — Barrel exports
-  action.enum.ts                — Enum de acoes (CREATE, READ, UPDATE, DELETE)
-  subject.enum.ts               — Enum de recursos (USER)
-  policy-map.ts                 — Matriz role → permissoes
-  ability-factory.ts            — Gera Ability com can()/cannot()
-  check-permissions.decorator.ts — Decorator @CheckPermissions
-  permissions.guard.ts          — Guard global que verifica permissoes
+  index.ts                       — Barrel exports
+  action.enum.ts                 — Actions enum (CREATE, READ, UPDATE, DELETE)
+  subject.enum.ts                — Resources enum (USER)
+  policy-map.ts                  — Role → permissions matrix
+  ability-factory.ts             — Generates Ability with can()/cannot()
+  check-permissions.decorator.ts — @CheckPermissions decorator
+  permissions.guard.ts           — Global guard that checks permissions
 ```
 
-## Como adicionar um novo recurso
+## How to add a new resource
 
-Exemplo: adicionar autorizacao para um recurso `Product`.
+Example: adding authorization for a `Product` resource.
 
-**1. Adicionar ao enum de subjects:**
+**1. Add to the subjects enum:**
 
 ```typescript
 export enum Subject {
@@ -186,30 +182,30 @@ export enum Subject {
 }
 ```
 
-**2. Expandir o policy map:**
+**2. Expand the policy map:**
 
 ```typescript
 export const POLICY_MAP: Record<UserRole, Permission[]> = {
   ADMIN: [
-    // ... permissoes existentes
+    // ... existing permissions
     { action: Action.CREATE, subject: Subject.PRODUCT },
     { action: Action.READ, subject: Subject.PRODUCT },
     { action: Action.UPDATE, subject: Subject.PRODUCT },
     { action: Action.DELETE, subject: Subject.PRODUCT },
   ],
   MANAGER: [
-    // ... permissoes existentes
+    // ... existing permissions
     { action: Action.CREATE, subject: Subject.PRODUCT },
     { action: Action.READ, subject: Subject.PRODUCT },
   ],
   USER: [
-    // ... permissoes existentes
+    // ... existing permissions
     { action: Action.READ, subject: Subject.PRODUCT },
   ],
 };
 ```
 
-**3. Aplicar no controller:**
+**3. Apply to the controller:**
 
 ```typescript
 @Get()
@@ -217,17 +213,15 @@ export const POLICY_MAP: Record<UserRole, Permission[]> = {
 findAll() { }
 ```
 
-## Classificacao do modelo
+## Model classification
 
-| Conceito                                  | Modelo                | Presente |
-|-------------------------------------------|-----------------------|:--------:|
-| Permissoes derivadas de role              | RBAC                  |    ✅    |
-| Action + Subject (verbo + recurso)        | Permission-Based      |    ✅    |
-| Policy map declarativo                    | Policy-Based          |    ✅    |
-| `can()` / `cannot()` (ability)            | Inspirado em ABAC/CASL|    ✅    |
-| Atributos do recurso (ex: "dono do dado") | ABAC                  |    ❌    |
-| Hierarquia de roles                       | Hierarchical RBAC     |    ❌    |
+| Concept                                        | Model                  | Present |
+|------------------------------------------------|------------------------|:-------:|
+| Permissions derived from role                  | RBAC                   |   ✅    |
+| Action + Subject (verb + resource)             | Permission-Based       |   ✅    |
+| Declarative policy map                         | Policy-Based           |   ✅    |
+| `can()` / `cannot()` (ability)                 | Inspired by ABAC/CASL  |   ✅    |
+| Resource attributes (e.g. "owner of the data") | ABAC                   |   ❌    |
+| Role hierarchy                                 | Hierarchical RBAC      |   ❌    |
 
-Para evoluir para **ABAC**, a `AbilityFactory` pode ser estendida para receber
-o usuario completo e o recurso alvo, permitindo regras como "USER pode atualizar
-apenas o proprio perfil".
+To evolve towards **ABAC**, the `AbilityFactory` can be extended to receive the full user and the target resource, enabling rules like "USER can only update their own profile".

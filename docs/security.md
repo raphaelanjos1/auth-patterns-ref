@@ -1,71 +1,71 @@
-# Medidas de Seguranca
+# Security Measures
 
-Documentacao das medidas de seguranca aplicadas na API para protecao contra vulnerabilidades comuns.
+Documentation of the security measures applied to the API for protection against common vulnerabilities.
 
 ## 1. Helmet
 
-**Arquivo:** `src/main.ts`
+**File:** `src/main.ts`
 
 ```typescript
 app.use(helmet());
 ```
 
-O Helmet configura automaticamente diversos headers HTTP de seguranca na resposta da API:
+Helmet automatically configures various HTTP security headers in the API response:
 
-- **X-Content-Type-Options: nosniff** — impede que o navegador tente adivinhar o tipo de conteudo (MIME sniffing), evitando execucao de arquivos maliciosos.
-- **Strict-Transport-Security (HSTS)** — forca o uso de HTTPS, protegendo contra ataques man-in-the-middle.
-- **X-Frame-Options: SAMEORIGIN** — impede que a aplicacao seja carregada dentro de iframes de outros dominios, protegendo contra clickjacking.
-- **Remove X-Powered-By** — oculta a tecnologia do servidor, dificultando ataques direcionados.
+- **X-Content-Type-Options: nosniff** — prevents the browser from trying to guess the content type (MIME sniffing), avoiding execution of malicious files.
+- **Strict-Transport-Security (HSTS)** — forces HTTPS usage, protecting against man-in-the-middle attacks.
+- **X-Frame-Options: SAMEORIGIN** — prevents the application from being loaded inside iframes from other domains, protecting against clickjacking.
+- **Remove X-Powered-By** — hides server technology, making targeted attacks harder.
 
-**Protege contra:** clickjacking, MIME sniffing, ataques man-in-the-middle, fingerprinting de servidor.
+**Protects against:** clickjacking, MIME sniffing, man-in-the-middle attacks, server fingerprinting.
 
 ---
 
 ## 2. CORS (Cross-Origin Resource Sharing)
 
-**Arquivo:** `src/main.ts`
+**File:** `src/main.ts`
 
 ```typescript
 app.enableCors({ origin: ['http://localhost:3000'] });
 ```
 
-Restringe quais dominios podem fazer requisicoes a API. Apenas as origens listadas no array `origin` sao autorizadas. Requisicoes de qualquer outro dominio serao bloqueadas pelo navegador.
+Restricts which domains can make requests to the API. Only the origins listed in the `origin` array are authorized. Requests from any other domain will be blocked by the browser.
 
-**Protege contra:** requisicoes nao autorizadas de origens desconhecidas, abuso da API por sites de terceiros.
+**Protects against:** unauthorized requests from unknown origins, API abuse by third-party sites.
 
 ---
 
 ## 3. Rate Limiting (Throttler)
 
-**Arquivos:** `src/app.module.ts`, `src/identity/authentication/auth.controller.ts`
+**Files:** `src/app.module.ts`, `src/identity/authentication/auth.controller.ts`
 
-### Limites globais (todas as rotas)
+### Global limits (all routes)
 
-| Janela | Limite          |
-| ------ | --------------- |
-| 1s     | 3 requisicoes   |
-| 10s    | 20 requisicoes  |
-| 60s    | 100 requisicoes |
+| Window | Limit            |
+| ------ | ---------------- |
+| 1s     | 3 requests       |
+| 10s    | 20 requests      |
+| 60s    | 100 requests     |
 
-### Limites da rota `/auth/sign-in` (mais restritivos)
+### `/auth/sign-in` route limits (more restrictive)
 
-| Janela | Limite          |
-| ------ | --------------- |
-| 1s     | 1 requisicao    |
-| 1min   | 5 requisicoes   |
-| 10min  | 10 requisicoes  |
+| Window | Limit            |
+| ------ | ---------------- |
+| 1s     | 1 request        |
+| 1min   | 5 requests       |
+| 10min  | 10 requests      |
 
-O rate limiting controla a quantidade de requisicoes que um mesmo cliente pode fazer em determinado intervalo de tempo. Quando o limite e excedido, a API retorna `429 Too Many Requests`.
+Rate limiting controls the number of requests a same client can make within a given time interval. When the limit is exceeded, the API returns `429 Too Many Requests`.
 
-A rota de login possui limites mais agressivos por ser o principal alvo de ataques de forca bruta.
+The login route has more aggressive limits as it is the primary target of brute force attacks.
 
-**Protege contra:** ataques de forca bruta, DDoS a nivel de aplicacao, abuso de recursos da API.
+**Protects against:** brute force attacks, application-level DDoS, API resource abuse.
 
 ---
 
-## 4. Validacao de Input (ValidationPipe)
+## 4. Input Validation (ValidationPipe)
 
-**Arquivo:** `src/main.ts`
+**File:** `src/main.ts`
 
 ```typescript
 app.useGlobalPipes(
@@ -73,31 +73,31 @@ app.useGlobalPipes(
 );
 ```
 
-- **whitelist: true** — remove automaticamente campos que nao estao declarados no DTO.
-- **forbidNonWhitelisted: true** — rejeita a requisicao com `400 Bad Request` se houver campos nao declarados no DTO.
+- **whitelist: true** — automatically removes fields not declared in the DTO.
+- **forbidNonWhitelisted: true** — rejects the request with `400 Bad Request` if there are fields not declared in the DTO.
 
-Exemplo: se o DTO aceita `email` e `password`, enviar `{ "email": "...", "password": "...", "role": "admin" }` retorna erro informando que `role` nao deveria existir.
+Example: if the DTO accepts `email` and `password`, sending `{ "email": "...", "password": "...", "role": "admin" }` returns an error indicating that `role` should not exist.
 
-**Protege contra:** mass assignment, injecao de campos maliciosos, manipulacao de propriedades como `role` ou `isAdmin`.
-
----
-
-## 5. Autenticacao JWT com Guard Global
-
-**Arquivos:** `src/identity/authentication/auth.guard.ts`, `src/app.module.ts`
-
-O `AuthGuard` e registrado globalmente via `APP_GUARD`, garantindo que **todas as rotas sao protegidas por padrao**. Apenas rotas marcadas explicitamente com o decorator `@Public()` ficam acessiveis sem autenticacao.
-
-O token JWT e enviado pelo cliente no header `Authorization: Bearer <token>` e validado a cada requisicao.
-
-**Protege contra:** acesso nao autorizado a endpoints da API, exposicao acidental de rotas sem autenticacao.
+**Protects against:** mass assignment, injection of malicious fields, manipulation of properties like `role` or `isAdmin`.
 
 ---
 
-## 6. Hashing de Senhas com Argon2
+## 5. JWT Authentication with Global Guard
 
-**Arquivo:** `src/shared/hashing/hashing.service.ts`
+**Files:** `src/identity/authentication/auth.guard.ts`, `src/app.module.ts`
 
-As senhas dos usuarios sao armazenadas utilizando o algoritmo Argon2, que e resistente a ataques de GPU e considerado o estado da arte em hashing de senhas.
+The `AuthGuard` is registered globally via `APP_GUARD`, ensuring that **all routes are protected by default**. Only routes explicitly marked with the `@Public()` decorator are accessible without authentication.
 
-**Protege contra:** vazamento de senhas em texto claro em caso de comprometimento do banco de dados, ataques de rainbow table e forca bruta offline.
+The JWT token is sent by the client in the `Authorization: Bearer <token>` header and validated on every request.
+
+**Protects against:** unauthorized access to API endpoints, accidental exposure of routes without authentication.
+
+---
+
+## 6. Password Hashing with Argon2
+
+**File:** `src/shared/hashing/hashing.service.ts`
+
+User passwords are stored using the Argon2 algorithm, which is resistant to GPU attacks and considered state of the art in password hashing.
+
+**Protects against:** cleartext password leaks in case of database compromise, rainbow table attacks and offline brute force.
