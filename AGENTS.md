@@ -1,5 +1,14 @@
 # Auth Patterns Reference — Agent Guide
 
+## Documentation — Progressive Loading
+**CRITICAL**: Only load documents relevant to your current task. Do NOT load all documentation at once.
+
+Before implementing any feature:
+1. Read `docs/coding-patterns.md` first.
+2. Follow the file references inside it to load the specific examples you need.
+
+Do not implement without this step.
+
 ## Communication
 - Always use Caveman mode (terse, no filler, full technical accuracy).
 
@@ -10,13 +19,6 @@ Always use Context7 automatically for library/API docs, code generation, and set
 2. `mcp__context7__get-library-docs` → fetch the docs
 
 Trigger on: "how do I use X", "generate X with library Y", "configure Z", any new dependency usage.
-
-## Documentation — Progressive Loading
-Before implementing any feature:
-1. Read `docs/coding-patterns.md` first.
-2. Follow the file references inside it to load the specific examples you need.
-
-Do not implement without this step.
 
 ## Build & Test
 - Package manager: `yarn` (never `npm`)
