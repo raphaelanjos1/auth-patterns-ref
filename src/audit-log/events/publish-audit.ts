@@ -1,4 +1,5 @@
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { AUDIT_CONTRACT_VERSION } from '../contracts/audit-contract';
 import type { AuditAction } from './audit-actions';
 import { AUDIT_EVENT, AuditEvent } from './audit.event';
 
@@ -20,6 +21,7 @@ export function publishAudit(
       payload.entityId,
       payload.userId,
       payload.metadata,
+      AUDIT_CONTRACT_VERSION,
     ),
   );
 }

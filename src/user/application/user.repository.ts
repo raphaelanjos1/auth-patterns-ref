@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@generated/prisma';
 import { PrismaService } from '../../shared/database/prisma.service';
+import type { IUserDirectory } from '../domain/ports/user-directory.port';
 
 @Injectable()
-export class UserRepository {
+export class UserRepository implements IUserDirectory {
   constructor(private readonly prisma: PrismaService) {}
 
   async findById(id: string) {

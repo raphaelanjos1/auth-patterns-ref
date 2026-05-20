@@ -8,14 +8,17 @@ import { ConflictException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service';
-import { UserRepository } from './user.repository';
+import {
+  USER_DIRECTORY,
+  type IUserDirectory,
+} from '../domain/ports/user-directory.port';
 import { HashingService } from '../../shared/hashing/hashing.service';
 import { AUDIT_EVENT, AuditEvent } from '../../audit-log/events/audit.event';
 import { UserRole } from '@generated/prisma';
 
 describe('UserService', () => {
   let service: UserService;
-  let userRepository: jest.Mocked<UserRepository>;
+  let userDirectory: jest.Mocked<IUserDirectory>;
   let hashingService: jest.Mocked<HashingService>;
   let eventEmitter: jest.Mocked<EventEmitter2>;
 
@@ -31,7 +34,7 @@ describe('UserService', () => {
       providers: [
         UserService,
         {
-          provide: UserRepository,
+          provide: USER_DIRECTORY,
           useValue: {
             findById: jest.fn(),
             findByEmail: jest.fn(),
@@ -53,14 +56,14 @@ describe('UserService', () => {
     }).compile();
 
     service = module.get(UserService);
-    userRepository = module.get<jest.Mocked<UserRepository>>(UserRepository);
+    userDirectory = module.get<jest.Mocked<IUserDirectory>>(USER_DIRECTORY);
     hashingService = module.get<jest.Mocked<HashingService>>(HashingService);
     eventEmitter = module.get<jest.Mocked<EventEmitter2>>(EventEmitter2);
   });
 
   describe('findById', () => {
     it('should return a user when found', async () => {
-      userRepository.findById.mockResolvedValue(mockUser);
+      userDirectory.findById.mockResolvedValue(mockUser);
 
       const result = await service.findById('user-1');
 
@@ -68,7 +71,7 @@ describe('UserService', () => {
     });
 
     it('should throw NotFoundException when user is not found', async () => {
-      userRepository.findById.mockResolvedValue(null);
+      userDirectory.findById.mockResolvedValue(null);
 
       await expect(service.findById('nonexistent')).rejects.toThrow(
         NotFoundException,
@@ -78,7 +81,7 @@ describe('UserService', () => {
 
   describe('findAll', () => {
     it('should return paginated results with meta', async () => {
-      userRepository.findAll.mockResolvedValue({
+      userDirectory.findAll.mockResolvedValue({
         data: [mockUser],
         total: 1,
       });
@@ -95,11 +98,11 @@ describe('UserService', () => {
     });
 
     it('should default page to 1 and pageSize to 10', async () => {
-      userRepository.findAll.mockResolvedValue({ data: [], total: 0 });
+      userDirectory.findAll.mockResolvedValue({ data: [], total: 0 });
 
       await service.findAll({});
 
-      expect(userRepository.findAll).toHaveBeenCalledWith({
+      expect(userDirectory.findAll).toHaveBeenCalledWith({
         skip: 0,
         take: 10,
         search: undefined,
@@ -107,11 +110,11 @@ describe('UserService', () => {
     });
 
     it('should cap pageSize at 100', async () => {
-      userRepository.findAll.mockResolvedValue({ data: [], total: 0 });
+      userDirectory.findAll.mockResolvedValue({ data: [], total: 0 });
 
       await service.findAll({ pageSize: 500 });
 
-      expect(userRepository.findAll).toHaveBeenCalledWith({
+      expect(userDirectory.findAll).toHaveBeenCalledWith({
         skip: 0,
         take: 100,
         search: undefined,
@@ -119,7 +122,7 @@ describe('UserService', () => {
     });
 
     it('should calculate totalPages correctly', async () => {
-      userRepository.findAll.mockResolvedValue({ data: [], total: 25 });
+      userDirectory.findAll.mockResolvedValue({ data: [], total: 25 });
 
       const result = await service.findAll({ page: 1, pageSize: 10 });
 
@@ -127,11 +130,11 @@ describe('UserService', () => {
     });
 
     it('should pass search parameter to repository', async () => {
-      userRepository.findAll.mockResolvedValue({ data: [], total: 0 });
+      userDirectory.findAll.mockResolvedValue({ data: [], total: 0 });
 
       await service.findAll({ search: 'john' });
 
-      expect(userRepository.findAll).toHaveBeenCalledWith(
+      expect(userDirectory.findAll).toHaveBeenCalledWith(
         expect.objectContaining({ search: 'john' }),
       );
     });
@@ -146,9 +149,9 @@ describe('UserService', () => {
     };
 
     it('should create a user when email is not taken', async () => {
-      userRepository.findByEmail.mockResolvedValue(null);
+      userDirectory.findByEmail.mockResolvedValue(null);
       hashingService.hash.mockResolvedValue('hashed-password');
-      userRepository.create.mockResolvedValue({
+      userDirectory.create.mockResolvedValue({
         id: 'user-2',
         fullName: createDto.fullName,
         email: createDto.email,
@@ -158,7 +161,7 @@ describe('UserService', () => {
       const result = await service.create(createDto);
 
       expect(result.email).toBe(createDto.email);
-      expect(userRepository.create).toHaveBeenCalledWith({
+      expect(userDirectory.create).toHaveBeenCalledWith({
         fullName: createDto.fullName,
         email: createDto.email,
         passwordHash: 'hashed-password',
@@ -167,18 +170,18 @@ describe('UserService', () => {
     });
 
     it('should throw ConflictException when email is already in use', async () => {
-      userRepository.findByEmail.mockResolvedValue(mockUser);
+      userDirectory.findByEmail.mockResolvedValue(mockUser);
 
       await expect(service.create(createDto)).rejects.toThrow(
         ConflictException,
       );
-      expect(userRepository.create).not.toHaveBeenCalled();
+      expect(userDirectory.create).not.toHaveBeenCalled();
     });
 
     it('should hash the password before storing', async () => {
-      userRepository.findByEmail.mockResolvedValue(null);
+      userDirectory.findByEmail.mockResolvedValue(null);
       hashingService.hash.mockResolvedValue('hashed-password');
-      userRepository.create.mockResolvedValue({ ...mockUser });
+      userDirectory.create.mockResolvedValue({ ...mockUser });
 
       await service.create(createDto);
 
@@ -192,9 +195,9 @@ describe('UserService', () => {
         email: createDto.email,
         role: createDto.role,
       };
-      userRepository.findByEmail.mockResolvedValue(null);
+      userDirectory.findByEmail.mockResolvedValue(null);
       hashingService.hash.mockResolvedValue('hashed-password');
-      userRepository.create.mockResolvedValue(createdUser);
+      userDirectory.create.mockResolvedValue(createdUser);
 
       await service.create(createDto, 'admin-1');
 
@@ -209,7 +212,7 @@ describe('UserService', () => {
     });
 
     it('should not emit audit event when creation fails', async () => {
-      userRepository.findByEmail.mockResolvedValue(mockUser);
+      userDirectory.findByEmail.mockResolvedValue(mockUser);
 
       await expect(service.create(createDto)).rejects.toThrow(
         ConflictException,
@@ -222,8 +225,8 @@ describe('UserService', () => {
     const updateDto = { fullName: 'John Updated' };
 
     it('should update the user when found', async () => {
-      userRepository.findById.mockResolvedValue(mockUser);
-      userRepository.update.mockResolvedValue({
+      userDirectory.findById.mockResolvedValue(mockUser);
+      userDirectory.update.mockResolvedValue({
         ...mockUser,
         fullName: 'John Updated',
       });
@@ -234,17 +237,17 @@ describe('UserService', () => {
     });
 
     it('should throw NotFoundException when user does not exist', async () => {
-      userRepository.findById.mockResolvedValue(null);
+      userDirectory.findById.mockResolvedValue(null);
 
       await expect(service.update('nonexistent', updateDto)).rejects.toThrow(
         NotFoundException,
       );
-      expect(userRepository.update).not.toHaveBeenCalled();
+      expect(userDirectory.update).not.toHaveBeenCalled();
     });
 
     it('should emit USER_UPDATED audit event with changes', async () => {
-      userRepository.findById.mockResolvedValue(mockUser);
-      userRepository.update.mockResolvedValue({
+      userDirectory.findById.mockResolvedValue(mockUser);
+      userDirectory.update.mockResolvedValue({
         ...mockUser,
         fullName: 'John Updated',
       });
@@ -262,7 +265,7 @@ describe('UserService', () => {
     });
 
     it('should not emit audit event when user is not found', async () => {
-      userRepository.findById.mockResolvedValue(null);
+      userDirectory.findById.mockResolvedValue(null);
 
       await expect(service.update('nonexistent', updateDto)).rejects.toThrow(
         NotFoundException,
@@ -273,26 +276,26 @@ describe('UserService', () => {
 
   describe('delete', () => {
     it('should delete the user when found', async () => {
-      userRepository.findById.mockResolvedValue(mockUser);
-      userRepository.delete.mockResolvedValue(mockUser);
+      userDirectory.findById.mockResolvedValue(mockUser);
+      userDirectory.delete.mockResolvedValue(mockUser);
 
       await service.delete('user-1');
 
-      expect(userRepository.delete).toHaveBeenCalledWith('user-1');
+      expect(userDirectory.delete).toHaveBeenCalledWith('user-1');
     });
 
     it('should throw NotFoundException when user does not exist', async () => {
-      userRepository.findById.mockResolvedValue(null);
+      userDirectory.findById.mockResolvedValue(null);
 
       await expect(service.delete('nonexistent')).rejects.toThrow(
         NotFoundException,
       );
-      expect(userRepository.delete).not.toHaveBeenCalled();
+      expect(userDirectory.delete).not.toHaveBeenCalled();
     });
 
     it('should emit USER_DELETED audit event with user snapshot', async () => {
-      userRepository.findById.mockResolvedValue(mockUser);
-      userRepository.delete.mockResolvedValue(mockUser);
+      userDirectory.findById.mockResolvedValue(mockUser);
+      userDirectory.delete.mockResolvedValue(mockUser);
 
       await service.delete('user-1', 'admin-1');
 
@@ -307,7 +310,7 @@ describe('UserService', () => {
     });
 
     it('should not emit audit event when user is not found', async () => {
-      userRepository.findById.mockResolvedValue(null);
+      userDirectory.findById.mockResolvedValue(null);
 
       await expect(service.delete('nonexistent')).rejects.toThrow(
         NotFoundException,

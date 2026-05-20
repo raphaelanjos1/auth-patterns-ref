@@ -5,19 +5,13 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import type { UserRole } from '@generated/prisma';
 import type { Request } from 'express';
+import type { JwtPayload } from '../../shared/contracts';
 import { AbilityFactory } from './ability-factory';
 import {
   PERMISSIONS_KEY,
   type PermissionRequirement,
 } from './check-permissions.decorator';
-
-interface JwtPayload {
-  sub: string;
-  email: string;
-  role: UserRole;
-}
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {

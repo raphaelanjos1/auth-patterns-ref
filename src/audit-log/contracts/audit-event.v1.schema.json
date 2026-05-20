@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "audit-event/v1",
+  "title": "AuditEventV1",
+  "description": "Versioned audit event payload published by IAM (Pattern 6 preparation).",
+  "type": "object",
+  "required": ["action", "entityId", "userId", "metadata", "schemaVersion"],
+  "additionalProperties": false,
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": ["USER_CREATED", "USER_UPDATED", "USER_DELETED", "AUTH_LOGIN"]
+    },
+    "entityId": {
+      "type": ["string", "null"]
+    },
+    "userId": {
+      "type": ["string", "null"]
+    },
+    "metadata": {
+      "oneOf": [
+        { "type": "object", "additionalProperties": true },
+        { "type": "null" }
+      ]
+    },
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0"
+    }
+  }
+}

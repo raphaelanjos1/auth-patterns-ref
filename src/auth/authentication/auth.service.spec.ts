@@ -3,13 +3,16 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
-import { AuthRepository } from './auth.repository';
+import {
+  USER_CREDENTIALS_READER,
+  type IUserCredentialsReader,
+} from '../../user/domain/ports/user-credentials-reader.port';
 import { HashingService } from '../../shared/hashing/hashing.service';
 import { AUDIT_EVENT, AuditEvent } from '../../audit-log/events/audit.event';
 
 describe('AuthService', () => {
   let service: AuthService;
-  let authRepository: jest.Mocked<AuthRepository>;
+  let credentialsReader: jest.Mocked<IUserCredentialsReader>;
   let hashingService: jest.Mocked<HashingService>;
   let jwtService: jest.Mocked<JwtService>;
   let eventEmitter: jest.Mocked<EventEmitter2>;
@@ -27,7 +30,7 @@ describe('AuthService', () => {
       providers: [
         AuthService,
         {
-          provide: AuthRepository,
+          provide: USER_CREDENTIALS_READER,
           useValue: { findByEmailWithPassword: jest.fn() },
         },
         {
@@ -46,7 +49,9 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get(AuthService);
-    authRepository = module.get<jest.Mocked<AuthRepository>>(AuthRepository);
+    credentialsReader = module.get<jest.Mocked<IUserCredentialsReader>>(
+      USER_CREDENTIALS_READER,
+    );
     hashingService = module.get<jest.Mocked<HashingService>>(HashingService);
     jwtService = module.get<jest.Mocked<JwtService>>(JwtService);
     eventEmitter = module.get<jest.Mocked<EventEmitter2>>(EventEmitter2);
@@ -56,7 +61,7 @@ describe('AuthService', () => {
     const dto = { email: 'john@example.com', password: 'password123' };
 
     it('should return an access token when credentials are valid', async () => {
-      authRepository.findByEmailWithPassword.mockResolvedValue(mockUser);
+      credentialsReader.findByEmailWithPassword.mockResolvedValue(mockUser);
       hashingService.verify.mockResolvedValue(true);
       jwtService.signAsync.mockResolvedValue('jwt-token');
 
@@ -71,14 +76,14 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException when user is not found', async () => {
-      authRepository.findByEmailWithPassword.mockResolvedValue(null);
+      credentialsReader.findByEmailWithPassword.mockResolvedValue(null);
 
       await expect(service.signIn(dto)).rejects.toThrow(UnauthorizedException);
       expect(hashingService.verify).not.toHaveBeenCalled();
     });
 
     it('should throw UnauthorizedException when password is invalid', async () => {
-      authRepository.findByEmailWithPassword.mockResolvedValue(mockUser);
+      credentialsReader.findByEmailWithPassword.mockResolvedValue(mockUser);
       hashingService.verify.mockResolvedValue(false);
 
       await expect(service.signIn(dto)).rejects.toThrow(UnauthorizedException);
@@ -86,7 +91,7 @@ describe('AuthService', () => {
     });
 
     it('should verify password against the stored hash', async () => {
-      authRepository.findByEmailWithPassword.mockResolvedValue(mockUser);
+      credentialsReader.findByEmailWithPassword.mockResolvedValue(mockUser);
       hashingService.verify.mockResolvedValue(true);
       jwtService.signAsync.mockResolvedValue('jwt-token');
 
@@ -99,7 +104,7 @@ describe('AuthService', () => {
     });
 
     it('should emit AUTH_LOGIN audit event after successful sign-in', async () => {
-      authRepository.findByEmailWithPassword.mockResolvedValue(mockUser);
+      credentialsReader.findByEmailWithPassword.mockResolvedValue(mockUser);
       hashingService.verify.mockResolvedValue(true);
       jwtService.signAsync.mockResolvedValue('jwt-token');
 
@@ -114,14 +119,14 @@ describe('AuthService', () => {
     });
 
     it('should not emit audit event when user is not found', async () => {
-      authRepository.findByEmailWithPassword.mockResolvedValue(null);
+      credentialsReader.findByEmailWithPassword.mockResolvedValue(null);
 
       await expect(service.signIn(dto)).rejects.toThrow(UnauthorizedException);
       expect(eventEmitter.emit).not.toHaveBeenCalled();
     });
 
     it('should not emit audit event when password is invalid', async () => {
-      authRepository.findByEmailWithPassword.mockResolvedValue(mockUser);
+      credentialsReader.findByEmailWithPassword.mockResolvedValue(mockUser);
       hashingService.verify.mockResolvedValue(false);
 
       await expect(service.signIn(dto)).rejects.toThrow(UnauthorizedException);

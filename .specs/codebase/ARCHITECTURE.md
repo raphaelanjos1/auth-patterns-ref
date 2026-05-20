@@ -112,6 +112,10 @@ src/
 
 **Module boundaries:** Um `*.module.ts` por área; guards globais registrados em `AppModule`.
 
+## Phase 3 — Logical service boundaries (readiness)
+
+Until feasibility **G5** (product driver) passes, the app stays a **single deploy** (`AppModule`). Logical extraction targets are documented, not deployed: **User Directory** (`src/user/`) owns user lifecycle and port adapters; **Access Control** (`src/auth/authentication/` + `src/auth/authorization/`) owns JWT issue/verify and RBAC; shared JWT claims use [`JwtPayload`](../../src/shared/contracts/jwt-payload.ts). **Audit** integrates only via `src/audit-log/events/`. See [ADR — Access Control extraction](../../docs/adr-access-control-service-extraction.md) and [coupling addendum](../../docs/coupling-analysis-extraction-readiness.md).
+
 ## Deep-Dive References
 
 - Component sizing: [docs/component-inventory.md](../../docs/component-inventory.md)

@@ -1,7 +1,7 @@
 # Roadmap
 
-**Current Milestone:** Phase 1 — Modular monolith preparation  
-**Status:** In Progress (análise ✅, implementação 0/10 stories)
+**Current Milestone:** Phase 3 — Extraction readiness ✅  
+**Status:** Complete (Stories 1–10 implemented or documented; deploy gated on G5)
 
 ---
 
@@ -82,16 +82,23 @@
 
 ---
 
-## Milestone 3: Extraction readiness (optional)
+## Milestone 3: Extraction readiness ✅
 
-**Goal:** Contratos versionados se produto exigir serviços separados
+**Goal:** Contratos versionados + ADRs se produto exigir serviços separados
 
-**Status:** DEFERRED — ver `docs/decomposition-planning-roadmap-user-auth.md` Phase 3
+**Status:** COMPLETE (2026-05-20) — deploy ainda bloqueado por **G5**
 
 ### Features
 
-**Audit service extraction** - PLANNED (defer)  
-**Access Control service extraction** - PLANNED (defer)
+**Audit extraction readiness (Story 9)** - COMPLETE
+
+- `docs/extraction-feasibility-gate.md`, `docs/adr-audit-service-extraction.md`
+- `src/audit-log/contracts/` + `schemaVersion` on events
+
+**Access Control extraction readiness (Story 10)** - COMPLETE
+
+- `docs/adr-access-control-service-extraction.md`, `docs/coupling-analysis-extraction-readiness.md`
+- `src/shared/contracts/jwt-payload.ts`
 
 ---
 

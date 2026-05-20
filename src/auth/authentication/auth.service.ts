@@ -1,22 +1,28 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
 import { HashingService } from '../../shared/hashing/hashing.service';
 import { publishAudit } from '../../audit-log/events/publish-audit';
-import { AuthRepository } from './auth.repository';
+import {
+  USER_CREDENTIALS_READER,
+  type IUserCredentialsReader,
+} from '../../user/domain/ports/user-credentials-reader.port';
 import { SignInDto } from './sign-in.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly authRepository: AuthRepository,
+    @Inject(USER_CREDENTIALS_READER)
+    private readonly credentialsReader: IUserCredentialsReader,
     private readonly hashingService: HashingService,
     private readonly jwtService: JwtService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async signIn(dto: SignInDto) {
-    const user = await this.authRepository.findByEmailWithPassword(dto.email);
+    const user = await this.credentialsReader.findByEmailWithPassword(
+      dto.email,
+    );
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');

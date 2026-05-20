@@ -57,7 +57,7 @@
 ## Cross-Module Rules (governance — Story 6)
 
 - IAM → Audit: apenas `audit-log/events/*` e helper de publish
-- IAM → Shared: `shared/database`, `shared/hashing`, swagger
+- IAM → Shared: `shared/database`, `shared/hashing`, `shared/contracts`, swagger
 - Proibido: IAM importar `audit-log.service` diretamente
 - user → auth: apenas `auth/authorization` (não `authentication/`, `auth.service`, `auth.repository`)
 - Verificação local: `npm run check:boundaries` (`scripts/check-domain-boundaries.mjs`; allowlist no cabeçalho do script)

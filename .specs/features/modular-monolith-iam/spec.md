@@ -6,17 +6,17 @@ O repositório já possui análises DDD completas (`docs/`) mas **zero implement
 
 ## Goals
 
-- [ ] Estrutura física alinhada ao mapa de domínios (authn leaf, user application leaf)
-- [ ] Integração IAM → Audit via contrato único e helper
-- [ ] Vocabulário `UserRole` sem duplicação
-- [ ] Governança de imports entre domínios (fitness function)
-- [ ] Decisão documentada sobre `src/identity/`
+- [x] Estrutura física alinhada ao mapa de domínios (authn leaf, user application leaf)
+- [x] Integração IAM → Audit via contrato único e helper
+- [x] Vocabulário `UserRole` sem duplicação
+- [x] Governança de imports entre domínios (fitness function)
+- [x] Decisão documentada sobre `src/identity/` — deprecate ([docs/identity-stack-decision.md](../../docs/identity-stack-decision.md))
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Extração Audit / Access Control como serviços | Sem trigger G5; ver roadmap Phase 3 |
+| Deploy de microserviços Audit / Access Control | G5 (product trigger) não atendido; Phase 3 = readiness only |
 | Migração completa para `identity/` | Apenas spike/decisão (IAM-08) |
 | Use-case classes, mappers por campo, pasta `application/` por operação | clean-arch-lite anti-bloat |
 | Refresh tokens / OAuth externo | Fora do escopo reference v1 |
@@ -150,6 +150,44 @@ O repositório já possui análises DDD completas (`docs/`) mas **zero implement
 
 ---
 
+### P3: Audit service extraction readiness (Phase 3)
+
+**User Story**: Como arquiteto, quero contrato de audit versionado e blueprint de extração para que IAM publique eventos sem acoplamento a `AuditLog` table quando G5 passar.
+
+**Why P3**: Story 9 do roadmap — preparação Pattern 6, não deploy.
+
+**Acceptance Criteria**:
+
+1. WHEN avaliar gate G1–G6 THEN documento SHALL registrar status pós Phase 2 e bloqueio G5
+2. WHEN publicar audit THEN payload SHALL incluir `schemaVersion` alinhado a JSON Schema v1
+3. WHEN IAM integrar audit THEN SHALL usar apenas `audit-log/events` + helper (sem import de `audit-log.service`)
+4. WHEN ler ADR de extração audit THEN rollback plan e consumer boundary SHALL existir
+
+**Independent Test**: Schema file exists; `npm test` green; doc review ADR + feasibility gate.
+
+**Requirement IDs:** IAM-19, IAM-20, IAM-21
+
+---
+
+### P3: Access Control extraction readiness (Phase 3)
+
+**User Story**: Como arquiteto, quero contrato de claims JWT compartilhado e blueprint Access Control para que User Directory exponha apenas identidade quando G5 passar.
+
+**Why P3**: Story 10 do roadmap — depende de ports (T7) e padrões de T9.
+
+**Acceptance Criteria**:
+
+1. WHEN guards validam JWT THEN SHALL usar tipo `JwtPayload` SSOT em `shared/contracts`
+2. WHEN documentar extração THEN ADR SHALL definir claims API vs Shared Kernel `User` table
+3. WHEN reavaliar acoplamento THEN addendum SHALL confirmar zero arestas CRITICAL para split authn+authz
+4. WHEN G5 faltar THEN decisão SHALL manter monólito modular com módulos lógicos documentados
+
+**Independent Test**: Guards importam contrato; `npm test` green; doc review ADR + coupling addendum.
+
+**Requirement IDs:** IAM-22, IAM-23, IAM-24
+
+---
+
 ## Edge Cases
 
 - WHEN mover arquivos (flatten) THEN relative imports and jest paths SHALL be updated
@@ -175,13 +213,19 @@ O repositório já possui análises DDD completas (`docs/`) mas **zero implement
 | IAM-11 | P2: User dto sibling | Tasks | Verified |
 | IAM-12 | P2: Fitness function rules | Tasks | Verified |
 | IAM-13 | P2: CI enforcement | Tasks | Verified |
-| IAM-14 | P2: Port IUserDirectory | Tasks | Pending |
-| IAM-15 | P2: Port IUserCredentialsReader | Tasks | Pending |
-| IAM-16 | P2: Tests mock ports | Tasks | Pending |
-| IAM-17 | P2: Identity spike decision | Tasks | Pending |
-| IAM-18 | P2: Identity migration epic list | Tasks | Pending |
+| IAM-14 | P2: Port IUserDirectory | Tasks | Verified |
+| IAM-15 | P2: Port IUserCredentialsReader | Tasks | Verified |
+| IAM-16 | P2: Tests mock ports | Tasks | Verified |
+| IAM-17 | P2: Identity spike decision | Tasks | Verified |
+| IAM-18 | P2: Identity migration epic list | Tasks | Verified (N/A — deprecate) |
+| IAM-19 | P3: Feasibility gate G1–G6 | Tasks | Verified |
+| IAM-20 | P3: Audit schema v1 + schemaVersion | Tasks | Verified |
+| IAM-21 | P3: Audit extraction ADR | Tasks | Verified |
+| IAM-22 | P3: JwtPayload SSOT | Tasks | Verified |
+| IAM-23 | P3: Access Control extraction ADR | Tasks | Verified |
+| IAM-24 | P3: Coupling addendum post Phase 2 | Tasks | Verified |
 
-**Coverage:** 18 total, 13 verified (IAM-01–13) — mapped in `tasks.md`
+**Coverage:** 24 total, 24 verified (IAM-01–24)
 
 ---
 

@@ -5,8 +5,9 @@
  *
  * Allowlist:
  * - IAM → Audit: only paths under src/audit-log/events (e.g. publish-audit, audit.event, audit-actions)
- * - IAM → Shared: only src/shared/database, src/shared/hashing, src/shared/swagger (and subpaths)
+ * - IAM → Shared: only src/shared/database, src/shared/hashing, src/shared/swagger, src/shared/contracts (and subpaths)
  * - user → auth: only src/auth/authorization (not authentication/, auth.service, auth.repository, etc.)
+ * - auth → user: only src/user/domain/ports (persistence port interfaces; not application/, dto/, etc.)
  * - Within-domain: imports resolving under the same src/user or src/auth tree are allowed
  * - External packages and @generated/* are not checked
  *
@@ -30,9 +31,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 
 const IAM_ROOTS = ['src/user', 'src/auth'];
-const SHARED_ALLOW = ['src/shared/database', 'src/shared/hashing', 'src/shared/swagger'];
+const SHARED_ALLOW = [
+  'src/shared/database',
+  'src/shared/hashing',
+  'src/shared/swagger',
+  'src/shared/contracts',
+];
 const AUDIT_EVENTS_PREFIX = 'src/audit-log/events';
 const AUTH_AUTHORIZATION_PREFIX = 'src/auth/authorization';
+const USER_PORTS_PREFIX = 'src/user/domain/ports';
 
 const IMPORT_FROM_RE =
   /(?:import|export)\s+(?:type\s+)?(?:\{[^}]*\}|\*\s+as\s+\w+|\w+)\s+from\s+['"]([^'"]+)['"]/g;
@@ -128,6 +135,16 @@ function checkResolvedImport(importerRel, specifier, targetRel) {
       return {
         rule: 'user→auth',
         message: `only "${AUTH_AUTHORIZATION_PREFIX}/*" is allowed (got "${targetRel}")`,
+      };
+    }
+    return null;
+  }
+
+  if (importerRel.startsWith('src/auth/') && targetRel.startsWith('src/user/')) {
+    if (!isUnderPrefix(targetRel, USER_PORTS_PREFIX)) {
+      return {
+        rule: 'auth→user',
+        message: `only "${USER_PORTS_PREFIX}/*" is allowed (got "${targetRel}")`,
       };
     }
     return null;

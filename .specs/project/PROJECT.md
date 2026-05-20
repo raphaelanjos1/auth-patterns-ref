@@ -52,4 +52,8 @@
 | Tasks | `.specs/features/modular-monolith-iam/tasks.md` |
 | Análises DDD | `docs/*-user-auth.md`, `docs/component-inventory.md` |
 | ADR Shared Kernel (`User`) | `docs/adr-shared-kernel-user.md` |
+| ADR Identity stack (deprecate) | `docs/identity-stack-decision.md` |
+| Extraction feasibility gate (G1–G6) | `docs/extraction-feasibility-gate.md` |
+| ADR Audit service extraction | `docs/adr-audit-service-extraction.md` |
+| ADR Access Control extraction | `docs/adr-access-control-service-extraction.md` |
 | Estado da sessão | `.specs/project/STATE.md` |
