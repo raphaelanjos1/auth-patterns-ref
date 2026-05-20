@@ -4,16 +4,24 @@ API de referencia para autenticacao e autorizacao com NestJS. O objetivo deste p
 
 ## Arquitetura
 
-Projeto construido com [NestJS](https://nestjs.com/) seguindo arquitetura modular com separacao em camadas:
+Projeto construido com [NestJS](https://nestjs.com/) seguindo monolito modular por capacidade de negocio:
 
 ```
 src/
-├── auth/           # Autenticacao (JWT, guards, login)
-├── user/           # CRUD de usuarios
+├── user/
+│   └── application/      # User Directory (CRUD, ports)
+├── auth/
+│   ├── authentication/   # JWT, sign-in, AuthGuard
+│   └── authorization/    # RBAC, PermissionsGuard
+├── audit-log/            # Auditoria (eventos + contrato v1)
+├── permissions-api/      # Facade RBAC para consumidores (ex.: user)
 └── shared/
-    ├── database/   # Prisma service
-    └── hashing/    # Hashing de senhas (Argon2)
+    ├── database/         # Prisma
+    ├── hashing/          # Argon2
+    └── contracts/        # JwtPayload e contratos compartilhados
 ```
+
+> **`src/identity/`:** stack paralela **deprecada** — pasta ausente no disco. Stack ativa = `user` + `auth` + `audit-log`. Ver [decisao de stack](docs/identity-stack-decision.md).
 
 **Stack:**
 - **Framework:** NestJS 11 + Express
@@ -92,7 +100,8 @@ A API estara disponivel em `http://localhost:3000`.
 | `npm run start:prod` | Inicia em modo producao         |
 | `npm run build`      | Compila o projeto               |
 | `npm run test`       | Executa testes unitarios        |
-| `npm run test:e2e`   | Executa testes end-to-end       |
+| `npm run test:e2e`   | E2E: smoke (`test/app.e2e-spec.ts`) + auth/user (`test/auth-user.e2e-spec.ts`, mocks) |
+| `npm run check:boundaries` | Valida imports entre dominios (fitness function) |
 | `npm run lint`       | Executa o linter                |
 
 ## API Docs (Swagger)

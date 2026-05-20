@@ -1,55 +1,28 @@
 # Codebase Concerns
 
-**Analysis Date:** 2026-05-20
+**Analysis Date:** 2026-05-20 (updated T13)
 
-## Tech Debt
+## Resolved (Phase 1–3 / T13)
 
-**Dual IAM stack (`identity/` vs `user`+`auth`):**
+| Concern | Resolution |
+|---------|------------|
+| Dual IAM stack (`identity/` vs `user`+`auth`) | **Deprecate** — `src/identity/` ausente; [docs/identity-stack-decision.md](../../docs/identity-stack-decision.md) |
+| Module root orphans | **Done** — leaf folders `user/application/`, `auth/authentication/`, `auth/authorization/` |
+| Duplicate `UserRole` enum | **Done** — DTOs usam `UserRole` de `@generated/prisma` |
+| Stringly-typed / duplicated audit emit | **Done** — `publishAudit` em `audit-log/events/` + contrato v1 |
+| README.md outdated | **Done** (T13) — árvore alinhada a `app.module.ts` |
+| E2E auth/user gap | **Done** (T11) — `test/auth-user.e2e-spec.ts` (sign-in + `GET /user/:id` com mocks) |
 
-- Issue: Duas implementações paralelas (guards, authz, audit, tests duplicados)
-- Files: `src/identity/**` (não wired), `src/user/**`, `src/auth/**`
-- Why: Experimento clean-arch-lite sem migração concluída
-- Impact: Risco de drift, confusão para agents e devs
-- Fix approach: Story 8 spike — deprecar, migrar ou documentar boundary explícito
+## Tech Debt (open)
 
-**Module root orphans (flattening pending):**
-
-- Issue: 13 arquivos de produção na raiz de `user/`, `auth/`, `audit-log/` fora de leaf folders
-- Files: ver [docs/component-flattening-analysis-user-auth.md](../../docs/component-flattening-analysis-user-auth.md)
-- Impact: Árvore não reflete subdomínios IAM
-- Fix approach: Stories 1, 5 em `.specs/features/modular-monolith-iam/tasks.md`
-
-**Duplicate `UserRole` enum:**
-
-- Issue: `export enum UserRole` em `src/user/dto/create-user.dto.ts` duplica Prisma
-- Files: `src/user/dto/create-user.dto.ts`
-- Impact: Drift entre DTO, JWT e policy map
-- Fix approach: Story 2 — import de `@generated/prisma`
-
-**Stringly-typed / duplicated audit emit:**
-
-- Issue: `eventEmitter.emit(AUDIT_EVENT, ...)` repetido em services
-- Files: `src/user/user.service.ts`, `src/auth/auth.service.ts`
-- Impact: Ações audit inconsistentes, difícil grep/fitness
-- Fix approach: Story 3 — helper + contrato tipado
-
-## Documentation Drift
-
-**README.md outdated:**
-
-- Issue: Descreve apenas `auth/`, `user/`, `shared/` — omite `audit-log` e `identity/`
-- Files: `README.md` vs `src/app.module.ts`
-- Impact: Onboarding incorreto
-- Fix approach: Atualizar quando milestone de docs for priorizado (Future in ROADMAP)
+_(Nenhum item crítico de stack dupla ou flatten pendente.)_
 
 ## Test Coverage Gaps
 
-**E2E minimal:**
+**E2E (baseline):**
 
-- Issue: `test/app.e2e-spec.ts` só testa `GET /`
-- Files: `test/app.e2e-spec.ts`
-- Impact: Regressões em auth/user não detectadas em e2e
-- Fix approach: Adicionar e2e após estabilizar rotas post-flatten (opcional Phase 2)
+- Covered: `GET /` smoke, `POST /auth/sign-in`, `GET /user/:id` com Bearer (Prisma/port mocks — sem Docker)
+- Gap opcional: `POST/PATCH/DELETE /user` e2e, DB real (Testcontainers) se CI exigir
 
 ## Security / Operational Notes
 
@@ -64,7 +37,7 @@ _(Nenhum CVE ou secret committed identificado nesta análise.)_
 
 - Issue: User Directory e Authentication compartilham modelo Prisma `User`
 - Impact: Bloqueia extração de microserviços sem estratégia de schema/API
-- Fix approach: Documentar ownership (Story 4); ports (Story 7) — **não extrair serviços no v1**
+- Fix approach: Ports (T7) + ADRs Phase 3 — **não extrair serviços no v1**; deploy bloqueado G5
 
 ## References
 

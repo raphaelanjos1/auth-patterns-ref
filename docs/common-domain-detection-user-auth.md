@@ -313,7 +313,7 @@ export function publishAudit(emitter: EventEmitter2, event: AuditEvent): void {
 | `AuditAction` typing | Publishers + consumer cast | 3 (implicit) | 3 (explicit import) | ✅ High | Export typed actions from events module |
 | `UserRole` enum | DTO + Prisma + JWT/policy | 3+ sites | 1 canonical | ✅ High | DTOs use `@generated/prisma` |
 | `User` persistence | 2 repositories | 2 | 2 ports + 2 impl | ⚠️ Medium | Ports module; **no** repo merge |
-| Authorization API | 1 consumer (`user`) | 1 | 1 (+ facade optional) | ⚠️ Medium | Optional `permissions-api` if path coupling hurts |
+| Authorization API | 1 consumer (`user`) | 1 | 1 | ✅ Done | `src/permissions-api/` facade (T12); `user.controller` importa facade |
 | Authentication + Authorization | Same `auth/` package | — | — | ❌ Low | Folder split, not merge |
 | Hashing / Database / Swagger | `shared/*` | 2–3 | — | ✅ Done | Maintain as infrastructure |
 
@@ -378,16 +378,11 @@ export function publishAudit(emitter: EventEmitter2, event: AuditEvent): void {
 
 ---
 
-#### D. Optional permissions facade
+#### D. Permissions facade — **implemented (T12)**
 
-**When:** New modules need RBAC beyond `user.controller`.
+**Location:** `src/permissions-api/` — re-export `CheckPermissions`, `Action`, `Subject`; `IPermissionChecker` para guards.
 
-**Steps:**
-
-1. Thin `src/permissions-api/` re-exporting `CheckPermissions`, `Action`, `Subject`.
-2. Point `user.controller` import at facade.
-
-**Coupling:** CA may rise if many modules use facade — monitor ([coupling analysis](./coupling-analysis-user-auth.md) Customer/Supplier pattern).
+**Consumer:** `user.controller` importa de `permissions-api` (não de `auth/authorization/` diretamente).
 
 ---
 
@@ -467,17 +462,9 @@ These match the skill’s rule: **infrastructure common to all or most processes
 
 ## Repository note: `src/identity/`
 
-[Component inventory](./component-inventory.md) documents a parallel **`src/identity/`** layout (ports, domain events, richer DDD). It is **not wired** in `AppModule` in the current tree.
+**Status (2026-05-20):** **Deprecado** — `Test-Path src/identity` = False; pasta ausente. Decisão: [identity-stack-decision.md](./identity-stack-decision.md). Stack única = `user` + `auth` + `audit-log` + `permissions-api`.
 
-If both tracks coexist:
-
-| Risk | Mitigation |
-|------|------------|
-| Second full IAM stack (user/auth vs identity) | Choose one active path; deprecate the other |
-| Duplicate `authorization`, guards, audit patterns | Extract shared kernel once identity migration completes |
-| Duplicate `audit.event` path (`shared/events` vs `audit-log/events` if introduced) | Single contract file under `audit-log/events` |
-
-Re-run this detection after migration or when `identity/` becomes active.
+Análises antigas que citam ~78 arquivos em `identity/` descrevem layout **historico**. Não reabrir dual stack sem decisão de produto explícita.
 
 ---
 

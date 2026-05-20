@@ -19,14 +19,16 @@
 ## Lessons
 
 - Análises DDD em `docs/` são input para spec/tasks — não recriar relatórios em `.specs/`
-- `README.md` desatualizado em relação a `app.module.ts` — corrigir quando tocar docs públicas
-- Análises que citam `src/identity/` (~78 arquivos) estão desatualizadas — pasta ausente no disco; decisão = deprecate
+- Análises que citam `src/identity/` (~78 arquivos) descrevem layout historico — pasta ausente; decisão = deprecate
 
 ## Todos
 
 - [x] T7 (user ports) — `USER_DIRECTORY` / `USER_CREDENTIALS_READER` wired
 - [x] Story 8 spike: decisão identity — **deprecate** ([docs/identity-stack-decision.md](../../docs/identity-stack-decision.md))
 - [x] T9–T10 Phase 3 readiness (contratos + ADRs; deploy bloqueado G5)
+- [x] T11 — E2E auth/user (`test/auth-user.e2e-spec.ts`, mocks)
+- [x] T12 — `permissions-api` + `IPermissionChecker`; `user.controller` via facade
+- [x] T13 — docs hygiene (README, ARCHITECTURE, CONCERNS, inventories)
 
 ## Decisions (Phase 3)
 
@@ -40,7 +42,7 @@
 
 - **Physical** service extraction (deploy) até G5 passar
 - Rename `src/iam/` (Strategy B) até trigger de produto
-- `IPermissionChecker` facade (roadmap opcional)
+- E2E com PostgreSQL real / CRUD completo (opcional)
 
 ## Preferences
 

@@ -7,7 +7,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 import type { JwtPayload } from '../../shared/contracts';
-import { AbilityFactory } from './ability-factory';
+import { AbilityPermissionChecker } from './ability-permission-checker';
 import {
   PERMISSIONS_KEY,
   type PermissionRequirement,
@@ -17,7 +17,7 @@ import {
 export class PermissionsGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    private readonly abilityFactory: AbilityFactory,
+    private readonly checker: AbilityPermissionChecker,
   ) {}
 
   canActivate(context: ExecutionContext): boolean {
@@ -39,9 +39,7 @@ export class PermissionsGuard implements CanActivate {
       );
     }
 
-    const ability = this.abilityFactory.createForRole(user.role);
-
-    if (ability.cannot(requirement.action, requirement.subject)) {
+    if (!this.checker.can(user, requirement)) {
       throw new ForbiddenException(
         'You do not have permission to access this resource',
       );

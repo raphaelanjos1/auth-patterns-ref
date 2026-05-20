@@ -7,7 +7,7 @@ Component identification and sizing using the **component-identification-sizing*
 **Date:** 2026-05-20  
 **Wired in app:** `AppModule` imports `UserModule`, `AuthModule`, `AuditLogModule`; global `AuthGuard` + `PermissionsGuard`
 
-> **Note:** `src/identity/` exists as a parallel, richer IAM layout (domain layer, ports, events). It is **out of scope** for this inventory; metrics below reflect the four modules above only.
+> **Note:** `src/identity/` — layout **historico/deprecado**; pasta **ausente no disco** (2026-05-20). Ver [identity-stack-decision.md](./identity-stack-decision.md). Métricas abaixo = quatro módulos wired apenas.
 
 ---
 
@@ -221,7 +221,7 @@ Authentication, Authorization, Audit Log, Shared subfolders, User DTOs — balan
 
 ### Out of scope but relevant
 
-**`src/identity/`** — larger, domain-rich variant (~78 TS files). If migration completes, re-run this inventory on `identity/` and deprecate `user/` + `auth/` paths.
+**`src/identity/`** — historico/deprecado; pasta ausente no disco (2026-05-20). Stack ativa = `user` + `auth` + `audit-log` + `permissions-api`.
 
 ---
 

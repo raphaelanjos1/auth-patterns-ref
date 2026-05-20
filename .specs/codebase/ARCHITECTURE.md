@@ -2,7 +2,7 @@
 
 **Pattern:** Modular monolith (NestJS modules por capacidade de negócio)
 
-**Design stance:** [clean-arch-lite](../../.cursor/skills/clean-arch-lite/SKILL.md) — domínio rico **apenas** onde já existe (`src/identity/`); stack ativa permanece pragmática (services + repositories).
+**Design stance:** [clean-arch-lite](../../.cursor/skills/clean-arch-lite/SKILL.md) — ports em fronteiras de infra (`user/domain/ports/`); stack ativa pragmática (services + repositories). `src/identity/` **deprecada/ausente** — [docs/identity-stack-decision.md](../../docs/identity-stack-decision.md).
 
 ## High-Level Structure
 
@@ -18,9 +18,6 @@ flowchart TB
     DB[DatabaseModule / Prisma]
     H[HashingModule / Argon2]
     SW[Swagger setup]
-  end
-  subgraph Identity["identity/ (NOT wired)"]
-    ID[domain + ports + infrastructure]
   end
   U --> DB
   U --> H
@@ -46,16 +43,16 @@ Fonte detalhada: [docs/domain-analysis-user-auth.md](../../docs/domain-analysis-
 
 ### Application service + repository (stack ativa)
 
-**Location:** `src/user/`, `src/auth/`  
+**Location:** `src/user/application/`, `src/auth/authentication/`  
 **Purpose:** CRUD, sign-in, emit audit  
-**Implementation:** `@Injectable()` services; Prisma em `*Repository` classes (sem port interface)  
-**Example:** `UserService` → `UserRepository` + `HashingService` + `EventEmitter2`
+**Implementation:** `@Injectable()` services; repos implement ports (`USER_DIRECTORY`, `USER_CREDENTIALS_READER`)  
+**Example:** `UserService` → `UserRepository` + `HashingService` + `publishAudit`
 
 ### Event-based audit integration
 
-**Location:** `src/audit-log/events/audit.event.ts`, listeners em `AuditLogService`  
+**Location:** `src/audit-log/events/`, `src/audit-log/contracts/`  
 **Purpose:** Desacoplar IAM de persistência de audit  
-**Implementation:** `eventEmitter.emit(AUDIT_EVENT, new AuditEvent(...))`  
+**Implementation:** `publishAudit(emitter, payload)` + `schemaVersion` v1  
 **Example:** `AuthService.signIn` após JWT
 
 ### Authorization as subdomain
@@ -63,13 +60,20 @@ Fonte detalhada: [docs/domain-analysis-user-auth.md](../../docs/domain-analysis-
 **Location:** `src/auth/authorization/`  
 **Purpose:** RBAC com actions/subjects + `PermissionsGuard`  
 **Implementation:** `AbilityFactory`, `policy-map.ts`, `@CheckPermissions()`  
-**Example:** `UserController` protegido por permissões
+**Example:** `UserController` via `@CheckPermissions()` importado de `permissions-api`
 
-### Rich domain + ports (parallel stack)
+### Permissions facade (consumer boundary)
 
-**Location:** `src/identity/domain/`, `infrastructure/`, `domain/ports/`  
-**Purpose:** Experimento/alvo de migração com entidade, VOs, ports (`USER_REPOSITORY`, etc.)  
-**Note:** **Não importado** em `AppModule` — ver CONCERNS.md
+**Location:** `src/permissions-api/`  
+**Purpose:** RBAC surface para módulos fora de `auth` sem acoplar path de `authorization/`  
+**Implementation:** re-export de `Action`, `Subject`, `CheckPermissions`; `IPermissionChecker` para guards  
+**Example:** `user.controller` importa de `permissions-api`
+
+### User ports (extraction prep)
+
+**Location:** `src/user/domain/ports/`  
+**Purpose:** `IUserDirectory`, `IUserCredentialsReader` — leitura/escrita separadas do agregado `User`  
+**Implementation:** tokens Nest + adapters em `user/application/user.repository.ts`, `auth/authentication/auth.repository.ts`
 
 ## Data Flow
 
@@ -96,25 +100,32 @@ Fonte detalhada: [docs/domain-analysis-user-auth.md](../../docs/domain-analysis-
 
 **Approach:** Feature modules (NestJS) com subpastas por subdomínio onde aplicável (`authorization/`).
 
-**Target layout (pós Phase 1–2):** ver [docs/decomposition-planning-roadmap-user-auth.md](../../docs/decomposition-planning-roadmap-user-auth.md)
+**Layout atual (Phase 1–3 concluídas):** ver [docs/decomposition-planning-roadmap-user-auth.md](../../docs/decomposition-planning-roadmap-user-auth.md)
 
 ```
 src/
-├── user/              # User Directory (flatten → application/ planned)
+├── user/
+│   ├── application/       # UserModule, controller, service, repository
+│   ├── domain/ports/      # IUserDirectory, IUserCredentialsReader
+│   └── dto/
 ├── auth/
-│   ├── authentication/   # target: authn leaf (Story 1)
+│   ├── authentication/
 │   └── authorization/
 ├── audit-log/
-│   └── events/        # contract surface for IAM
-├── shared/
-└── identity/          # parallel — decision pending Story 8
+│   ├── events/            # publishAudit, AUDIT_EVENT
+│   └── contracts/         # v1 schema + AUDIT_CONTRACT_VERSION
+├── permissions-api/         # facade RBAC (T12)
+└── shared/
+    ├── database/
+    ├── hashing/
+    └── contracts/         # JwtPayload SSOT
 ```
 
 **Module boundaries:** Um `*.module.ts` por área; guards globais registrados em `AppModule`.
 
-## Phase 3 — Logical service boundaries (readiness)
+## Phase 3 — Logical service boundaries (complete — readiness only)
 
-Until feasibility **G5** (product driver) passes, the app stays a **single deploy** (`AppModule`). Logical extraction targets are documented, not deployed: **User Directory** (`src/user/`) owns user lifecycle and port adapters; **Access Control** (`src/auth/authentication/` + `src/auth/authorization/`) owns JWT issue/verify and RBAC; shared JWT claims use [`JwtPayload`](../../src/shared/contracts/jwt-payload.ts). **Audit** integrates only via `src/audit-log/events/`. See [ADR — Access Control extraction](../../docs/adr-access-control-service-extraction.md) and [coupling addendum](../../docs/coupling-analysis-extraction-readiness.md).
+Phase 3 entregou **readiness** para extração futura, sem deploy separado (G5 ainda bloqueia). **User Directory** (`src/user/`) com ports; **Access Control** (`src/auth/authentication/` + `src/auth/authorization/` + `permissions-api`); JWT via [`JwtPayload`](../../src/shared/contracts/jwt-payload.ts); **Audit** via `events/` + contrato v1 em `contracts/`. ADRs: [Access Control](../../docs/adr-access-control-service-extraction.md), [Audit](../../docs/adr-audit-service-extraction.md), [coupling addendum](../../docs/coupling-analysis-extraction-readiness.md). Fitness: `npm run check:boundaries`.
 
 ## Deep-Dive References
 

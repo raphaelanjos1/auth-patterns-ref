@@ -59,7 +59,7 @@
 - IAM → Audit: apenas `audit-log/events/*` e helper de publish
 - IAM → Shared: `shared/database`, `shared/hashing`, `shared/contracts`, swagger
 - Proibido: IAM importar `audit-log.service` diretamente
-- user → auth: apenas `auth/authorization` (não `authentication/`, `auth.service`, `auth.repository`)
+- user → auth: apenas `permissions-api` (não `auth/authorization`, `authentication/`, etc.)
 - Verificação local: `npm run check:boundaries` (`scripts/check-domain-boundaries.mjs`; allowlist no cabeçalho do script)
 
 ## Comments / Docs

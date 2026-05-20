@@ -7,6 +7,7 @@ import { AuthRepository } from './authentication/auth.repository';
 import { AuthService } from './authentication/auth.service';
 import { AuthController } from './authentication/auth.controller';
 import { AbilityFactory } from './authorization/ability-factory';
+import { AbilityPermissionChecker } from './authorization/ability-permission-checker';
 
 @Module({
   imports: [
@@ -22,8 +23,9 @@ import { AbilityFactory } from './authorization/ability-factory';
     { provide: USER_CREDENTIALS_READER, useClass: AuthRepository },
     AuthService,
     AbilityFactory,
+    AbilityPermissionChecker,
   ],
   controllers: [AuthController],
-  exports: [AbilityFactory],
+  exports: [AbilityFactory, AbilityPermissionChecker],
 })
 export class AuthModule {}

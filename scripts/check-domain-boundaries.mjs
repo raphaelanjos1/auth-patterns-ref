@@ -6,7 +6,8 @@
  * Allowlist:
  * - IAM → Audit: only paths under src/audit-log/events (e.g. publish-audit, audit.event, audit-actions)
  * - IAM → Shared: only src/shared/database, src/shared/hashing, src/shared/swagger, src/shared/contracts (and subpaths)
- * - user → auth: only src/auth/authorization (not authentication/, auth.service, auth.repository, etc.)
+ * - user → permissions-api: only src/permissions-api (published RBAC facade; not src/auth/*)
+ * - auth → permissions-api: only src/permissions-api (IPermissionChecker port; implementation stays in auth)
  * - auth → user: only src/user/domain/ports (persistence port interfaces; not application/, dto/, etc.)
  * - Within-domain: imports resolving under the same src/user or src/auth tree are allowed
  * - External packages and @generated/* are not checked
@@ -38,7 +39,7 @@ const SHARED_ALLOW = [
   'src/shared/contracts',
 ];
 const AUDIT_EVENTS_PREFIX = 'src/audit-log/events';
-const AUTH_AUTHORIZATION_PREFIX = 'src/auth/authorization';
+const PERMISSIONS_API_PREFIX = 'src/permissions-api';
 const USER_PORTS_PREFIX = 'src/user/domain/ports';
 
 const IMPORT_FROM_RE =
@@ -130,13 +131,18 @@ function checkResolvedImport(importerRel, specifier, targetRel) {
     return null;
   }
 
+  if (importerRel.startsWith('src/user/') && isUnderPrefix(targetRel, PERMISSIONS_API_PREFIX)) {
+    return null;
+  }
+
   if (importerRel.startsWith('src/user/') && targetRel.startsWith('src/auth/')) {
-    if (!isUnderPrefix(targetRel, AUTH_AUTHORIZATION_PREFIX)) {
-      return {
-        rule: 'user→auth',
-        message: `only "${AUTH_AUTHORIZATION_PREFIX}/*" is allowed (got "${targetRel}")`,
-      };
-    }
+    return {
+      rule: 'user→auth',
+      message: `use "${PERMISSIONS_API_PREFIX}/*" instead of "${targetRel}"`,
+    };
+  }
+
+  if (importerRel.startsWith('src/auth/') && isUnderPrefix(targetRel, PERMISSIONS_API_PREFIX)) {
     return null;
   }
 

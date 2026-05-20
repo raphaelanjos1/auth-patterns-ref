@@ -2,14 +2,14 @@ import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PermissionsGuard } from './permissions.guard';
-import { AbilityFactory } from './ability-factory';
+import { AbilityPermissionChecker } from './ability-permission-checker';
 import { Action } from './action.enum';
 import { Subject } from './subject.enum';
 
 describe('PermissionsGuard', () => {
   let guard: PermissionsGuard;
   let reflector: jest.Mocked<Reflector>;
-  let abilityFactory: jest.Mocked<AbilityFactory>;
+  let checker: jest.Mocked<AbilityPermissionChecker>;
 
   function createMockContext(user?: Record<string, unknown>): ExecutionContext {
     const request: Record<string, unknown> = { user };
@@ -30,15 +30,17 @@ describe('PermissionsGuard', () => {
           useValue: { getAllAndOverride: jest.fn() },
         },
         {
-          provide: AbilityFactory,
-          useValue: { createForRole: jest.fn() },
+          provide: AbilityPermissionChecker,
+          useValue: { can: jest.fn() },
         },
       ],
     }).compile();
 
     guard = module.get(PermissionsGuard);
     reflector = module.get<jest.Mocked<Reflector>>(Reflector);
-    abilityFactory = module.get<jest.Mocked<AbilityFactory>>(AbilityFactory);
+    checker = module.get<jest.Mocked<AbilityPermissionChecker>>(
+      AbilityPermissionChecker,
+    );
   });
 
   it('should allow access when no permission requirement is set', () => {
@@ -63,10 +65,7 @@ describe('PermissionsGuard', () => {
       action: Action.DELETE,
       subject: Subject.USER,
     });
-    abilityFactory.createForRole.mockReturnValue({
-      can: () => false,
-      cannot: () => true,
-    });
+    checker.can.mockReturnValue(false);
     const context = createMockContext({
       sub: 'user-1',
       email: 'user@example.com',
@@ -81,10 +80,7 @@ describe('PermissionsGuard', () => {
       action: Action.READ,
       subject: Subject.USER,
     });
-    abilityFactory.createForRole.mockReturnValue({
-      can: () => true,
-      cannot: () => false,
-    });
+    checker.can.mockReturnValue(true);
     const context = createMockContext({
       sub: 'user-1',
       email: 'admin@example.com',
@@ -94,23 +90,24 @@ describe('PermissionsGuard', () => {
     expect(guard.canActivate(context)).toBe(true);
   });
 
-  it('should create ability for the correct user role', () => {
+  it('should delegate permission check to checker with user and requirement', () => {
     reflector.getAllAndOverride.mockReturnValue({
       action: Action.READ,
       subject: Subject.USER,
     });
-    abilityFactory.createForRole.mockReturnValue({
-      can: () => true,
-      cannot: () => false,
-    });
-    const context = createMockContext({
+    checker.can.mockReturnValue(true);
+    const user = {
       sub: 'user-1',
       email: 'manager@example.com',
       role: 'MANAGER',
-    });
+    };
+    const context = createMockContext(user);
 
     guard.canActivate(context);
 
-    expect(abilityFactory.createForRole).toHaveBeenCalledWith('MANAGER');
+    expect(checker.can).toHaveBeenCalledWith(user, {
+      action: Action.READ,
+      subject: Subject.USER,
+    });
   });
 });

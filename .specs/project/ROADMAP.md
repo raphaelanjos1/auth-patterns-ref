@@ -76,7 +76,9 @@
 
 - Deprecar, migrar ou dual-boundary (Story 8)
 
-**Optional: IPermissionChecker facade** - PLANNED
+**IPermissionChecker facade** - COMPLETE (T12)  
+**E2E auth/user** - COMPLETE (T11)  
+**Docs hygiene** - COMPLETE (T13)
 
 - Story opcional do roadmap original
 

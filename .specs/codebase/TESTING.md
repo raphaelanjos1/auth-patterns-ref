@@ -21,8 +21,8 @@
 
 ### E2E
 
-**Approach:** `Test.createTestingModule({ imports: [AppModule] })` + supertest  
-**Coverage today:** apenas `GET /` — **gap** para fluxos auth/user
+**Approach:** `Test.createTestingModule({ imports: [AppModule] })` + supertest + `ValidationPipe` global  
+**Coverage today:** `GET /` smoke; `POST /auth/sign-in`; `GET /user/:id` (mocks em `test/auth-user.e2e-spec.ts`)
 
 ## Test Execution
 
@@ -52,7 +52,7 @@
 | Module wiring / HTTP flows | e2e | `test/*.e2e-spec.ts` | `npm run test:e2e` |
 | Audit listener | unit | `audit-log.service.spec.ts` | `npm test` |
 
-**Gap:** E2E para sign-in e CRUD user — marcar em CONCERNS; não bloqueia Phase 1 se unit tests passam.
+**Gap (opcional):** E2E para `POST/PATCH/DELETE /user` ou DB real (Testcontainers).
 
 ## Parallelism Assessment
 

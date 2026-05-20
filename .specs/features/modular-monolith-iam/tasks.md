@@ -329,8 +329,51 @@ flowchart LR
 
 ---
 
+### T11: E2E auth + user flows [P]
+
+**What:** E2E for sign-in + authorized user read using mocked Prisma (no Docker required in CI)  
+**Where:** `test/auth-user.e2e-spec.ts`, `test/helpers/`, `test/jest-e2e.json`  
+**Depends on:** T1–T7  
+**Gate:** `npm run test:e2e`
+
+**Done when:**
+
+- [x] sign-in 401/201; `GET /user/:id` 401/200 with ADMIN token
+- [x] Gate: `npm run test:e2e` (5 tests)
+
+---
+
+### T12: IPermissionChecker facade [P]
+
+**What:** `permissions-api` barrel + `IPermissionChecker` + guard wiring; user imports facade only  
+**Where:** `src/permissions-api/`, `src/auth/authorization/`, `src/user/application/user.controller.ts`, `scripts/check-domain-boundaries.mjs`  
+**Depends on:** T6, T7  
+**Gate:** `npm test` + `npm run check:boundaries`
+
+**Done when:**
+
+- [x] `user.controller` imports `permissions-api` only
+- [x] `AbilityPermissionChecker` + unit spec
+- [x] Boundary: user → `permissions-api` (not `auth/authorization`)
+
+---
+
+### T13: Docs hygiene [P]
+
+**What:** README, ARCHITECTURE, CONCERNS, component-inventory, common-domain identity notes  
+**Where:** `README.md`, `.specs/codebase/`, `docs/`  
+**Depends on:** T8, T9, T10  
+**Gate:** n/a (review)
+
+**Done when:**
+
+- [x] README + ARCHITECTURE reflect wired stack; identity deprecated
+- [x] CONCERNS resolved table updated (incl. T11 post-pass)
+
+---
+
 ## Execute Next
 
-**Phase 3 complete (T9–T10).** Deploy extraction blocked until **G5** (product trigger). Optional: docs hygiene, E2E auth/user, `IPermissionChecker` facade.
+**Opcionais complete (T11–T13).** Feature IAM backlog done; deploy extraction still gated on G5.
 
 For **individual story execution**, use Quick Mode pre-check per task when ≤3 files (T2, T3, T4, T8).
