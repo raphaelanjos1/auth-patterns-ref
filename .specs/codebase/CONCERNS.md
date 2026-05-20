@@ -21,8 +21,8 @@ _(Nenhum item crítico de stack dupla ou flatten pendente.)_
 
 **E2E (baseline):**
 
-- Covered: `GET /` smoke, `POST /auth/sign-in`, `GET /user/:id` com Bearer (Prisma/port mocks — sem Docker)
-- Gap opcional: `POST/PATCH/DELETE /user` e2e, DB real (Testcontainers) se CI exigir
+- Covered: `GET /` smoke, `POST /auth/sign-in`, CRUD HTTP `/user` com Bearer (Prisma/port mocks — sem Docker); teardown `app.close()` nos e2e
+- Gap opcional: DB real (Testcontainers) se CI exigir
 
 ## Security / Operational Notes
 
