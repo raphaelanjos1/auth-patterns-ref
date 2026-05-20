@@ -1,10 +1,10 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
-import { HashingService } from '../shared/hashing/hashing.service';
-import { AUDIT_EVENT, AuditEvent } from '../audit-log/events/audit.event';
+import { HashingService } from '../../shared/hashing/hashing.service';
+import { publishAudit } from '../../audit-log/events/publish-audit';
 import { AuthRepository } from './auth.repository';
-import { SignInDto } from './dto/sign-in.dto';
+import { SignInDto } from './sign-in.dto';
 
 @Injectable()
 export class AuthService {
@@ -34,10 +34,12 @@ export class AuthService {
     const payload = { sub: user.id, email: user.email, role: user.role };
     const accessToken = await this.jwtService.signAsync(payload);
 
-    this.eventEmitter.emit(
-      AUDIT_EVENT,
-      new AuditEvent('AUTH_LOGIN', user.id, user.id, { email: user.email }),
-    );
+    publishAudit(this.eventEmitter, {
+      action: 'AUTH_LOGIN',
+      entityId: user.id,
+      userId: user.id,
+      metadata: { email: user.email },
+    });
 
     return { accessToken };
   }

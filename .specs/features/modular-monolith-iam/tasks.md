@@ -122,9 +122,9 @@ flowchart LR
 
 **Done when:**
 
-- [ ] Files under `authentication/` per spec
-- [ ] `authorization/` untouched
-- [ ] Gate: `npm test` passes
+- [x] Files under `authentication/` per spec
+- [x] `authorization/` untouched
+- [x] Gate: `npm test` passes
 
 **Tests:** unit (update paths in existing specs)  
 **Gate:** quick (`npm test`)
@@ -143,9 +143,9 @@ flowchart LR
 
 **Done when:**
 
-- [ ] No `export enum UserRole` in `src/user/dto`
-- [ ] Policy map / guards behavior unchanged
-- [ ] Gate: `npm test` passes
+- [x] No `export enum UserRole` in `src/user/dto`
+- [x] Policy map / guards behavior unchanged
+- [x] Gate: `npm test` passes
 
 **Tests:** unit  
 **Gate:** quick
@@ -157,17 +157,17 @@ flowchart LR
 ### T3: Audit helper + typed contract [P]
 
 **What:** Add `publishAudit` helper + export typed actions; refactor user/auth services  
-**Where:** `src/audit-log/events/`, `src/user/user.service.ts`, `src/auth/auth.service.ts`  
+**Where:** `src/audit-log/events/`, `src/user/user.service.ts`, `src/auth/authentication/auth.service.ts`  
 **Depends on:** None  
 **Reuses:** `AuditEvent`, `AUDIT_EVENT`  
 **Requirement:** IAM-06, IAM-07, IAM-08
 
 **Done when:**
 
-- [ ] Helper used by both services
-- [ ] Grep: no raw `emit(AUDIT_EVENT` outside helper
-- [ ] `audit-log.service.spec.ts` green
-- [ ] Gate: `npm test`
+- [x] Helper used by both services
+- [x] Grep: no raw `emit(AUDIT_EVENT` outside helper
+- [x] `audit-log.service.spec.ts` green
+- [x] Gate: `npm test`
 
 **Tests:** unit  
 **Gate:** quick

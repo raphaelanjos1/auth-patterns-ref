@@ -1,4 +1,4 @@
-import { UserRole } from './create-user.dto';
+import type { UserRole } from '@generated/prisma';
 
 export class UpdateUserDto {
   fullName?: string;

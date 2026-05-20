@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { HashingService } from '../shared/hashing/hashing.service';
-import { AUDIT_EVENT, AuditEvent } from '../audit-log/events/audit.event';
+import { publishAudit } from '../audit-log/events/publish-audit';
 import { UserRepository } from './user.repository';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -59,10 +59,12 @@ export class UserService {
       .filter((key) => beforeUser[key] !== updatedUser[key])
       .map((key) => ({ field: key, from: beforeUser[key], to: updatedUser[key] }));
 
-    this.eventEmitter.emit(
-      AUDIT_EVENT,
-      new AuditEvent('USER_UPDATED', id, performedBy ?? null, { changes }),
-    );
+    publishAudit(this.eventEmitter, {
+      action: 'USER_UPDATED',
+      entityId: id,
+      userId: performedBy ?? null,
+      metadata: { changes },
+    });
 
     return updatedUser;
   }
@@ -71,14 +73,16 @@ export class UserService {
     const user = await this.findById(id);
     const deletedUser = await this.userRepository.delete(id);
 
-    this.eventEmitter.emit(
-      AUDIT_EVENT,
-      new AuditEvent('USER_DELETED', id, performedBy ?? null, {
+    publishAudit(this.eventEmitter, {
+      action: 'USER_DELETED',
+      entityId: id,
+      userId: performedBy ?? null,
+      metadata: {
         fullName: user.fullName,
         email: user.email,
         role: user.role,
-      }),
-    );
+      },
+    });
 
     return deletedUser;
   }
@@ -99,14 +103,16 @@ export class UserService {
       role: dto.role,
     });
 
-    this.eventEmitter.emit(
-      AUDIT_EVENT,
-      new AuditEvent('USER_CREATED', createdUser.id, performedBy ?? null, {
+    publishAudit(this.eventEmitter, {
+      action: 'USER_CREATED',
+      entityId: createdUser.id,
+      userId: performedBy ?? null,
+      metadata: {
         fullName: createdUser.fullName,
         email: createdUser.email,
         role: createdUser.role,
-      }),
-    );
+      },
+    });
 
     return createdUser;
   }

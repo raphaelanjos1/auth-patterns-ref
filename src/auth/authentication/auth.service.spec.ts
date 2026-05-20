@@ -4,8 +4,8 @@ import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { AuthRepository } from './auth.repository';
-import { HashingService } from '../shared/hashing/hashing.service';
-import { AUDIT_EVENT, AuditEvent } from '../audit-log/events/audit.event';
+import { HashingService } from '../../shared/hashing/hashing.service';
+import { AUDIT_EVENT, AuditEvent } from '../../audit-log/events/audit.event';
 
 describe('AuthService', () => {
   let service: AuthService;

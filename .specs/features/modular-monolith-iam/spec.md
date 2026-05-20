@@ -162,14 +162,14 @@ O repositório já possui análises DDD completas (`docs/`) mas **zero implement
 
 | Requirement ID | Story | Phase | Status |
 |----------------|-------|-------|--------|
-| IAM-01 | P1: Flatten auth — tree layout | Tasks | Pending |
-| IAM-02 | P1: Flatten auth — authorization unchanged | Tasks | Pending |
-| IAM-03 | P1: Flatten auth — tests green | Tasks | Pending |
-| IAM-04 | P1: UserRole SSOT import | Tasks | Pending |
-| IAM-05 | P1: UserRole no duplicate enum | Tasks | Pending |
-| IAM-06 | P1: Audit helper | Tasks | Pending |
-| IAM-07 | P1: AuditAction typed | Tasks | Pending |
-| IAM-08 | P1: No raw emit outside helper | Tasks | Pending |
+| IAM-01 | P1: Flatten auth — tree layout | Tasks | Verified |
+| IAM-02 | P1: Flatten auth — authorization unchanged | Tasks | Verified |
+| IAM-03 | P1: Flatten auth — tests green | Tasks | Verified |
+| IAM-04 | P1: UserRole SSOT import | Tasks | Verified |
+| IAM-05 | P1: UserRole no duplicate enum | Tasks | Verified |
+| IAM-06 | P1: Audit helper | Tasks | Verified |
+| IAM-07 | P1: AuditAction typed | Tasks | Verified |
+| IAM-08 | P1: No raw emit outside helper | Tasks | Verified |
 | IAM-09 | P2: Shared Kernel doc | Tasks | Pending |
 | IAM-10 | P2: User application leaf | Tasks | Pending |
 | IAM-11 | P2: User dto sibling | Tasks | Pending |
@@ -181,7 +181,7 @@ O repositório já possui análises DDD completas (`docs/`) mas **zero implement
 | IAM-17 | P2: Identity spike decision | Tasks | Pending |
 | IAM-18 | P2: Identity migration epic list | Tasks | Pending |
 
-**Coverage:** 18 total, 0 verified — mapped in `tasks.md`
+**Coverage:** 18 total, 8 verified (IAM-01–08) — mapped in `tasks.md`
 
 ---
 
