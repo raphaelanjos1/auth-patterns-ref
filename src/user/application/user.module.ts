@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { DatabaseModule } from '../shared/database/database.module';
-import { HashingModule } from '../shared/hashing/hashing.module';
+import { DatabaseModule } from '../../shared/database/database.module';
+import { HashingModule } from '../../shared/hashing/hashing.module';
 import { UserRepository } from './user.repository';
 import { UserService } from './user.service';
 import { UserController } from './user.controller';

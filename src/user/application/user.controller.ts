@@ -11,12 +11,19 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { ApiTags } from '@nestjs/swagger';
-import { Action, CheckPermissions, Subject } from '../auth/authorization';
+import { Action, CheckPermissions, Subject } from '../../auth/authorization';
 import { UserService } from './user.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { FindAllUsersQueryDto } from './dto/find-all-users-query.dto';
-import { SwaggerApiTags } from '../shared/swagger/api-tags.enum';
+import { CreateUserDto } from '../dto/create-user.dto';
+import { UpdateUserDto } from '../dto/update-user.dto';
+import { FindAllUsersQueryDto } from '../dto/find-all-users-query.dto';
+import { SwaggerApiTags } from '../../shared/swagger/api-tags.enum';
+
+type JwtUser = { sub: string; email: string; role: string };
+type AuthenticatedRequest = Request & { user?: JwtUser };
+
+function actorId(req: Request): string | undefined {
+  return (req as AuthenticatedRequest).user?.sub;
+}
 
 @ApiTags(SwaggerApiTags.USERS)
 @Controller('user')
@@ -37,19 +44,23 @@ export class UserController {
 
   @Patch(':id')
   @CheckPermissions({ action: Action.UPDATE, subject: Subject.USER })
-  update(@Param('id') id: string, @Body() dto: UpdateUserDto, @Req() req: Request) {
-    return this.userService.update(id, dto, req['user']?.sub);
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateUserDto,
+    @Req() req: Request,
+  ) {
+    return this.userService.update(id, dto, actorId(req));
   }
 
   @Delete(':id')
   @CheckPermissions({ action: Action.DELETE, subject: Subject.USER })
   delete(@Param('id') id: string, @Req() req: Request) {
-    return this.userService.delete(id, req['user']?.sub);
+    return this.userService.delete(id, actorId(req));
   }
 
   @Post()
   @CheckPermissions({ action: Action.CREATE, subject: Subject.USER })
   create(@Body() dto: CreateUserDto, @Req() req: Request) {
-    return this.userService.create(dto, req['user']?.sub);
+    return this.userService.create(dto, actorId(req));
   }
 }

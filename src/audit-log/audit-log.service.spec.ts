@@ -19,7 +19,8 @@ describe('AuditLogService', () => {
     }).compile();
 
     service = module.get(AuditLogService);
-    repository = module.get<jest.Mocked<AuditLogRepository>>(AuditLogRepository);
+    repository =
+      module.get<jest.Mocked<AuditLogRepository>>(AuditLogRepository);
   });
 
   describe('handleAuditEvent', () => {
@@ -36,7 +37,11 @@ describe('AuditLogService', () => {
         action: 'USER_CREATED',
         entityId: 'user-1',
         userId: 'admin-1',
-        metadata: { fullName: 'John Doe', email: 'john@example.com', role: 'USER' },
+        metadata: {
+          fullName: 'John Doe',
+          email: 'john@example.com',
+          role: 'USER',
+        },
       });
     });
 
@@ -51,7 +56,9 @@ describe('AuditLogService', () => {
         action: 'USER_UPDATED',
         entityId: 'user-1',
         userId: 'admin-1',
-        metadata: { changes: [{ field: 'fullName', from: 'John', to: 'John Doe' }] },
+        metadata: {
+          changes: [{ field: 'fullName', from: 'John', to: 'John Doe' }],
+        },
       });
     });
 
@@ -68,7 +75,11 @@ describe('AuditLogService', () => {
         action: 'USER_DELETED',
         entityId: 'user-1',
         userId: 'admin-1',
-        metadata: { fullName: 'John Doe', email: 'john@example.com', role: 'ADMIN' },
+        metadata: {
+          fullName: 'John Doe',
+          email: 'john@example.com',
+          role: 'ADMIN',
+        },
       });
     });
 
@@ -88,7 +99,9 @@ describe('AuditLogService', () => {
     });
 
     it('should handle null entityId and userId', async () => {
-      const event = new AuditEvent('USER_CREATED', null, null, { fullName: 'Test' });
+      const event = new AuditEvent('USER_CREATED', null, null, {
+        fullName: 'Test',
+      });
 
       await service.handleAuditEvent(event);
 
@@ -101,8 +114,12 @@ describe('AuditLogService', () => {
     });
 
     it('should catch and log errors without propagating', async () => {
-      repository.create.mockRejectedValue(new Error('Database connection failed'));
-      const event = new AuditEvent('AUTH_LOGIN', 'user-1', 'user-1', { email: 'test@test.com' });
+      repository.create.mockRejectedValue(
+        new Error('Database connection failed'),
+      );
+      const event = new AuditEvent('AUTH_LOGIN', 'user-1', 'user-1', {
+        email: 'test@test.com',
+      });
 
       await expect(service.handleAuditEvent(event)).resolves.not.toThrow();
     });

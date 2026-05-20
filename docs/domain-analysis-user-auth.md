@@ -6,6 +6,8 @@ Strategic DDD analysis of the User and Auth modules. Generated using the **domai
 
 **Date:** 2026-05-20
 
+**Shared Kernel (ownership):** [ADR — Prisma `User` table](./adr-shared-kernel-user.md)
+
 ---
 
 ## Executive Summary

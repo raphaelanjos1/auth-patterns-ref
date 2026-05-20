@@ -14,7 +14,10 @@ auth-patterns-ref/
 ├── src/
 │   ├── app.module.ts       # User, Auth, AuditLog wired
 │   ├── user/
+│   │   ├── application/
+│   │   └── dto/
 │   ├── auth/
+│   │   ├── authentication/
 │   │   ├── authorization/
 │   │   └── dto/
 │   ├── audit-log/
@@ -34,14 +37,13 @@ auth-patterns-ref/
 ### User Directory (`src/user/`)
 
 **Purpose:** CRUD de usuários, paginação, audit emit  
-**Key files:** `user.module.ts`, `user.controller.ts`, `user.service.ts`, `user.repository.ts`, `dto/`  
+**Key files:** `application/user.module.ts`, `user.controller.ts`, `user.service.ts`, `user.repository.ts`, `dto/`  
 **Statements:** ~148 (42% do escopo IAM) — [inventory](../../docs/component-inventory.md)
 
-### Authentication (`src/auth/` root)
+### Authentication (`src/auth/authentication/`)
 
 **Purpose:** Sign-in, JWT, `AuthGuard`, `Public` decorator  
-**Key files:** `auth.service.ts`, `auth.controller.ts`, `auth.repository.ts`, `auth.guard.ts`  
-**Planned:** mover para `auth/authentication/` (Story 1)
+**Key files:** `auth.service.ts`, `auth.controller.ts`, `auth.repository.ts`, `auth.guard.ts`
 
 ### Authorization (`src/auth/authorization/`)
 

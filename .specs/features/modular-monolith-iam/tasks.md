@@ -183,8 +183,8 @@ flowchart LR
 
 **Done when:**
 
-- [ ] Doc linked from spec or PROJECT
-- [ ] Cross-links from domain/coupling docs (optional one-liner)
+- [x] Doc linked from spec or PROJECT
+- [x] Cross-links from domain/coupling docs (optional one-liner)
 
 **Tests:** none  
 **Gate:** n/a (doc review)
@@ -200,8 +200,8 @@ flowchart LR
 
 **Done when:**
 
-- [ ] `dto/` remains at `src/user/dto/`
-- [ ] Gate: `npm test` + `npm run build`
+- [x] `dto/` remains at `src/user/dto/`
+- [x] Gate: `npm test` + `npm run build`
 
 **Tests:** unit  
 **Gate:** quick
@@ -217,9 +217,9 @@ flowchart LR
 
 **Done when:**
 
-- [ ] Violation example fails locally
-- [ ] Allowlist for `audit-log/events`, `shared/*` documented
-- [ ] Gate: `npm run lint` + script exit 0 on clean tree
+- [x] Violation example fails locally
+- [x] Allowlist for `audit-log/events`, `shared/*` documented
+- [x] Gate: `npm run lint` + script exit 0 on clean tree
 
 **Tests:** none  
 **Gate:** build (lint + test)
@@ -281,6 +281,6 @@ flowchart LR
 
 ## Execute Next
 
-**Recommended order:** T1 → (T2 ∥ T3) → T4 → T5 → T6 → T7 → T8
+**Recommended order:** T7 → T8 (T1–T6 complete)
 
 For **individual story execution**, use Quick Mode pre-check per task when ≤3 files (T2, T3, T4, T8).

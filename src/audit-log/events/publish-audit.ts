@@ -13,10 +13,13 @@ export function publishAudit(
   emitter: EventEmitter2,
   payload: PublishAuditPayload,
 ): void {
-  emitter.emit(AUDIT_EVENT, new AuditEvent(
-    payload.action,
-    payload.entityId,
-    payload.userId,
-    payload.metadata,
-  ));
+  emitter.emit(
+    AUDIT_EVENT,
+    new AuditEvent(
+      payload.action,
+      payload.entityId,
+      payload.userId,
+      payload.metadata,
+    ),
+  );
 }

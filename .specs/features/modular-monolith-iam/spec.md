@@ -170,18 +170,18 @@ O repositório já possui análises DDD completas (`docs/`) mas **zero implement
 | IAM-06 | P1: Audit helper | Tasks | Verified |
 | IAM-07 | P1: AuditAction typed | Tasks | Verified |
 | IAM-08 | P1: No raw emit outside helper | Tasks | Verified |
-| IAM-09 | P2: Shared Kernel doc | Tasks | Pending |
-| IAM-10 | P2: User application leaf | Tasks | Pending |
-| IAM-11 | P2: User dto sibling | Tasks | Pending |
-| IAM-12 | P2: Fitness function rules | Tasks | Pending |
-| IAM-13 | P2: CI enforcement | Tasks | Pending |
+| IAM-09 | P2: Shared Kernel doc | Tasks | Verified |
+| IAM-10 | P2: User application leaf | Tasks | Verified |
+| IAM-11 | P2: User dto sibling | Tasks | Verified |
+| IAM-12 | P2: Fitness function rules | Tasks | Verified |
+| IAM-13 | P2: CI enforcement | Tasks | Verified |
 | IAM-14 | P2: Port IUserDirectory | Tasks | Pending |
 | IAM-15 | P2: Port IUserCredentialsReader | Tasks | Pending |
 | IAM-16 | P2: Tests mock ports | Tasks | Pending |
 | IAM-17 | P2: Identity spike decision | Tasks | Pending |
 | IAM-18 | P2: Identity migration epic list | Tasks | Pending |
 
-**Coverage:** 18 total, 8 verified (IAM-01–08) — mapped in `tasks.md`
+**Coverage:** 18 total, 13 verified (IAM-01–13) — mapped in `tasks.md`
 
 ---
 

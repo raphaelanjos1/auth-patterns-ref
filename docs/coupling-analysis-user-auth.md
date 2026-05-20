@@ -3,6 +3,7 @@
 Three-dimensional coupling analysis (Integration Strength, Distance, Volatility) per the **coupling-analysis** skill and _Balancing Coupling in Software Design_ (Vlad Khononov).
 
 **Context:** [Domain Analysis: User & Auth](./domain-analysis-user-auth.md), [Component Inventory](./component-inventory.md)  
+**Shared Kernel (ownership):** [ADR — Prisma `User` table](./adr-shared-kernel-user.md)  
 **Scope:** `src/user/`, `src/auth/` (Authentication + `authorization/`), `src/audit-log/`  
 **Focus:** Dependencies flagged in domain analysis (User ↔ Auth persistence, User → Authorization, IAM → Audit Log, Auth ↔ Authorization runtime)  
 **Date:** 2026-05-20

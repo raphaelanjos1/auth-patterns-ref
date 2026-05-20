@@ -4,12 +4,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { HashingService } from '../shared/hashing/hashing.service';
-import { publishAudit } from '../audit-log/events/publish-audit';
+import { HashingService } from '../../shared/hashing/hashing.service';
+import { publishAudit } from '../../audit-log/events/publish-audit';
 import { UserRepository } from './user.repository';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { FindAllUsersQueryDto } from './dto/find-all-users-query.dto';
+import { CreateUserDto } from '../dto/create-user.dto';
+import { UpdateUserDto } from '../dto/update-user.dto';
+import { FindAllUsersQueryDto } from '../dto/find-all-users-query.dto';
 
 @Injectable()
 export class UserService {
@@ -55,9 +55,13 @@ export class UserService {
     const beforeUser = await this.findById(id);
     const updatedUser = await this.userRepository.update(id, dto);
 
-    const changes = Object.keys(dto)
+    const changes = (Object.keys(dto) as (keyof UpdateUserDto)[])
       .filter((key) => beforeUser[key] !== updatedUser[key])
-      .map((key) => ({ field: key, from: beforeUser[key], to: updatedUser[key] }));
+      .map((key) => ({
+        field: key,
+        from: beforeUser[key],
+        to: updatedUser[key],
+      }));
 
     publishAudit(this.eventEmitter, {
       action: 'USER_UPDATED',

@@ -51,4 +51,5 @@
 | Feature spec | `.specs/features/modular-monolith-iam/spec.md` |
 | Tasks | `.specs/features/modular-monolith-iam/tasks.md` |
 | Análises DDD | `docs/*-user-auth.md`, `docs/component-inventory.md` |
+| ADR Shared Kernel (`User`) | `docs/adr-shared-kernel-user.md` |
 | Estado da sessão | `.specs/project/STATE.md` |

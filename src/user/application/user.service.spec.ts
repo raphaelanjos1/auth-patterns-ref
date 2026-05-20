@@ -1,12 +1,16 @@
-jest.mock('@generated/prisma', () => require('../../generated/prisma/enums'));
+jest.mock('@generated/prisma', () =>
+  jest.requireActual<typeof import('@generated/prisma')>(
+    '../../../generated/prisma/enums',
+  ),
+);
 
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service';
 import { UserRepository } from './user.repository';
-import { HashingService } from '../shared/hashing/hashing.service';
-import { AUDIT_EVENT, AuditEvent } from '../audit-log/events/audit.event';
+import { HashingService } from '../../shared/hashing/hashing.service';
+import { AUDIT_EVENT, AuditEvent } from '../../audit-log/events/audit.event';
 import { UserRole } from '@generated/prisma';
 
 describe('UserService', () => {
@@ -207,7 +211,9 @@ describe('UserService', () => {
     it('should not emit audit event when creation fails', async () => {
       userRepository.findByEmail.mockResolvedValue(mockUser);
 
-      await expect(service.create(createDto)).rejects.toThrow(ConflictException);
+      await expect(service.create(createDto)).rejects.toThrow(
+        ConflictException,
+      );
       expect(eventEmitter.emit).not.toHaveBeenCalled();
     });
   });
@@ -248,7 +254,9 @@ describe('UserService', () => {
       expect(eventEmitter.emit).toHaveBeenCalledWith(
         AUDIT_EVENT,
         new AuditEvent('USER_UPDATED', 'user-1', 'admin-1', {
-          changes: [{ field: 'fullName', from: 'John Doe', to: 'John Updated' }],
+          changes: [
+            { field: 'fullName', from: 'John Doe', to: 'John Updated' },
+          ],
         }),
       );
     });
@@ -256,7 +264,9 @@ describe('UserService', () => {
     it('should not emit audit event when user is not found', async () => {
       userRepository.findById.mockResolvedValue(null);
 
-      await expect(service.update('nonexistent', updateDto)).rejects.toThrow(NotFoundException);
+      await expect(service.update('nonexistent', updateDto)).rejects.toThrow(
+        NotFoundException,
+      );
       expect(eventEmitter.emit).not.toHaveBeenCalled();
     });
   });
@@ -299,7 +309,9 @@ describe('UserService', () => {
     it('should not emit audit event when user is not found', async () => {
       userRepository.findById.mockResolvedValue(null);
 
-      await expect(service.delete('nonexistent')).rejects.toThrow(NotFoundException);
+      await expect(service.delete('nonexistent')).rejects.toThrow(
+        NotFoundException,
+      );
       expect(eventEmitter.emit).not.toHaveBeenCalled();
     });
   });

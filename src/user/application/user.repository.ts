@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@generated/prisma';
-import { PrismaService } from '../shared/database/prisma.service';
+import { PrismaService } from '../../shared/database/prisma.service';
 
 @Injectable()
 export class UserRepository {

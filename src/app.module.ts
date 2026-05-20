@@ -8,7 +8,7 @@ import { AuditLogModule } from './audit-log/audit-log.module';
 import { AuthGuard } from './auth/authentication/auth.guard';
 import { AuthModule } from './auth/auth.module';
 import { PermissionsGuard } from './auth/authorization';
-import { UserModule } from './user/user.module';
+import { UserModule } from './user/application/user.module';
 
 @Module({
   imports: [
