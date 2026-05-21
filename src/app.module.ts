@@ -13,8 +13,8 @@ import { UserModule } from './user/application/user.module';
 @Module({
   imports: [
     EventEmitterModule.forRoot(),
-    AuthModule,
     UserModule,
+    AuthModule,
     AuditLogModule,
     ThrottlerModule.forRoot({
       throttlers: [

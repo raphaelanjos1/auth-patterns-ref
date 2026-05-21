@@ -1,40 +1,40 @@
-# Autenticacao JWT
+# JWT Authentication
 
-## Visao geral
+## Overview
 
-A autenticacao utiliza JSON Web Tokens (JWT) para proteger endpoints da API.
-O usuario se autentica uma vez via email/senha e recebe um token que deve ser
-enviado em todas as requisicoes subsequentes.
+Authentication uses JSON Web Tokens (JWT) to protect API endpoints.
+The user authenticates once via email/password and receives a token that must be
+sent in all subsequent requests.
 
-## Fluxo completo
+## Complete flow
 
 ```
                                     API
-Usuario                         (NestJS)
+User                            (NestJS)
   |                                |
   |  POST /auth/sign-in            |
   |  { email, password }           |
   |------------------------------->|
-  |                                |--- Busca user pelo email (com passwordHash)
-  |                                |--- Verifica password com Argon2
-  |                                |--- Gera JWT com { sub, email, role }
+  |                                |--- Finds user by email (with passwordHash)
+  |                                |--- Verifies password with Argon2
+  |                                |--- Generates JWT with { sub, email, role }
   |                                |
   |  200 { accessToken: "eyJ..." } |
   |<-------------------------------|
   |                                |
-  |  GET /user (ou qualquer rota   |
-  |  protegida)                    |
+  |  GET /user (or any protected   |
+  |  route)                        |
   |  Authorization: Bearer eyJ...  |
   |------------------------------->|
-  |                                |--- AuthGuard extrai token do header
-  |                                |--- Verifica assinatura e expiracao
-  |                                |--- Injeta payload em request.user
+  |                                |--- AuthGuard extracts token from header
+  |                                |--- Verifies signature and expiration
+  |                                |--- Injects payload into request.user
   |                                |
-  |  200 { ...dados... }           |
+  |  200 { ...data... }            |
   |<-------------------------------|
 ```
 
-## Componentes
+## Components
 
 ### 1. Sign-in (`POST /auth/sign-in`)
 
@@ -42,152 +42,153 @@ Usuario                         (NestJS)
 
 ```json
 {
-  "email": "usuario@exemplo.com",
-  "password": "senha123"
+  "email": "user@example.com",
+  "password": "password123"
 }
 ```
 
-**Validacao (ValidationPipe + class-validator):**
+**Validation (ValidationPipe + class-validator):**
 
-| Campo      | Regras                        |
-|------------|-------------------------------|
-| `email`    | Obrigatorio, formato de email |
-| `password` | Obrigatorio, string           |
+| Field      | Rules                          |
+|------------|--------------------------------|
+| `email`    | Required, valid email format   |
+| `password` | Required, string               |
 
-Se a validacao falhar, retorna `400 Bad Request` com as mensagens de erro
-antes de chegar ao service.
+If validation fails, returns `400 Bad Request` with error messages before reaching the service.
 
-**Cenarios de resposta:**
+**Response scenarios:**
 
-| Cenario            | Status | Resposta                                  |
-|--------------------|--------|-------------------------------------------|
-| Credenciais validas | 200    | `{ "accessToken": "eyJhbG..." }`         |
-| Email nao existe   | 401    | `{ "message": "Invalid credentials" }`    |
-| Senha incorreta    | 401    | `{ "message": "Invalid credentials" }`    |
-| Body invalido      | 400    | `{ "message": ["email must be an email"] }`|
+| Scenario             | Status | Response                                     |
+|----------------------|--------|----------------------------------------------|
+| Valid credentials    | 200    | `{ "accessToken": "eyJhbG..." }`             |
+| Email not found      | 401    | `{ "message": "Invalid credentials" }`       |
+| Wrong password       | 401    | `{ "message": "Invalid credentials" }`       |
+| Invalid body         | 400    | `{ "message": ["email must be an email"] }`  |
 
-> A mensagem de erro e identica para email inexistente e senha incorreta.
-> Isso e intencional — evita que um atacante descubra quais emails estao
-> cadastrados (user enumeration).
+> The error message is identical for non-existent email and wrong password.
+> This is intentional — it prevents an attacker from discovering which emails are
+> registered (user enumeration).
 
 ### 2. AuthGuard
 
-Guard global aplicado nos controllers que precisam de autenticacao.
-Atualmente protege todas as rotas do modulo `user`.
+Global guard applied to controllers that require authentication.
+Currently protects all routes in the `user` module.
 
-**O que o guard faz:**
+**What the guard does:**
 
-1. Extrai o token do header `Authorization: Bearer <token>`
-2. Verifica a assinatura e expiracao via `JwtService.verifyAsync()`
-3. Se valido, coloca o payload decodificado em `request['user']`
-4. Se invalido ou ausente, retorna `401 Unauthorized`
+1. Extracts the token from the `Authorization: Bearer <token>` header
+2. Verifies the signature and expiration via `JwtService.verifyAsync()`
+3. If valid, places the decoded payload in `request['user']`
+4. If invalid or missing, returns `401 Unauthorized`
 
-**Como aplicar em um controller:**
+**How to apply to a controller:**
 
 ```typescript
 import { UseGuards } from '@nestjs/common';
-import { AuthGuard } from '../auth/auth.guard';
+import { AuthGuard } from '../identity/authentication/auth.guard';
 
 @UseGuards(AuthGuard)
-@Controller('exemplo')
-export class ExemploController {
-  // todas as rotas deste controller exigem token
+@Controller('example')
+export class ExampleController {
+  // all routes in this controller require a token
 }
 ```
 
-Para proteger apenas uma rota especifica:
+To protect only a specific route:
 
 ```typescript
 @UseGuards(AuthGuard)
-@Get('rota-protegida')
-rotaProtegida() {
+@Get('protected-route')
+protectedRoute() {
   // ...
 }
 ```
 
-### 3. Payload do token
+### 3. Token payload
 
-O JWT gerado contem:
+The generated JWT contains:
 
 ```json
 {
-  "sub": "uuid-do-usuario",
-  "email": "usuario@exemplo.com",
+  "sub": "user-uuid",
+  "email": "user@example.com",
   "role": "USER",
   "iat": 1742331560,
   "exp": 1742331860
 }
 ```
 
-| Campo   | Descricao                                     |
-|---------|-----------------------------------------------|
-| `sub`   | ID do usuario (subject — convencao JWT)       |
-| `email` | Email do usuario                              |
-| `role`  | Role do usuario (ADMIN, USER, MANAGER)        |
-| `iat`   | Timestamp de emissao (issued at)              |
-| `exp`   | Timestamp de expiracao (iat + tempo de vida)  |
+| Field   | Description                                    |
+|---------|------------------------------------------------|
+| `sub`   | User ID (subject — JWT convention)             |
+| `email` | User email                                     |
+| `role`  | User role (ADMIN, USER, MANAGER)               |
+| `iat`   | Issuance timestamp (issued at)                 |
+| `exp`   | Expiration timestamp (iat + lifetime)          |
 
-## Configuracao
+## Configuration
 
-**Variaveis de ambiente necessarias (`.env`):**
+**Required environment variables (`.env`):**
 
-| Variavel     | Descricao                          |
+| Variable     | Description                        |
 |--------------|------------------------------------|
-| `JWT_SECRET` | Chave secreta para assinar tokens  |
+| `JWT_SECRET` | Secret key for signing tokens      |
 
-**Tempo de expiracao:**
+**Expiration time:**
 
-Configurado em `auth.module.ts` no registro do `JwtModule`:
+Configured in `auth.module.ts` when registering the `JwtModule`:
 
 ```typescript
 JwtModule.register({
   global: true,
   secret: process.env.JWT_SECRET,
-  signOptions: { expiresIn: '5m' }, // alterar aqui
+  signOptions: { expiresIn: '5m' }, // change here
 })
 ```
 
-O `global: true` faz com que o `JwtService` fique disponivel em todos os
-modulos sem precisar importar o `JwtModule` novamente.
+The `global: true` makes the `JwtService` available in all modules without
+needing to import `JwtModule` again.
 
-## Estrutura de arquivos
+## File structure
 
 ```
-src/auth/
-  auth.module.ts        — Modulo com JwtModule, DatabaseModule, HashingModule
-  auth.controller.ts    — POST /auth/sign-in
-  auth.service.ts       — Logica de validacao e geracao do token
-  auth.repository.ts    — Busca de user com passwordHash (para verificacao)
-  auth.guard.ts         — Guard que valida o Bearer token
-  dto/
-    sign-in.dto.ts      — Validacao do body de sign-in
+src/identity/
+  identity.module.ts                    — Unified module (JwtModule, DatabaseModule, HashingModule)
+  user.repository.ts                    — Single User aggregate repository (includes findByEmailWithPassword)
+  authentication/
+    auth.controller.ts                  — POST /auth/sign-in
+    auth.service.ts                     — Validation and token generation logic
+    auth.guard.ts                       — Guard that validates the Bearer token
+    public.decorator.ts                 — Marks public routes (AuthGuard bypass)
+    dto/
+      sign-in.dto.ts                    — Sign-in body validation
 ```
 
-## Testando
+## Testing
 
-**1. Criar um usuario:**
+**1. Create a user:**
 
 ```bash
 curl -X POST http://localhost:3000/user \
   -H "Content-Type: application/json" \
-  -d '{"fullName":"Joao","email":"joao@ex.com","password":"123456","role":"USER"}'
+  -d '{"fullName":"John","email":"john@ex.com","password":"123456","role":"USER"}'
 ```
 
-> Nota: a rota de criacao de usuario esta protegida pelo AuthGuard.
-> Para criar o primeiro usuario, remova temporariamente o `@UseGuards`
-> do controller ou crie via seed/prisma studio.
+> Note: the user creation route is protected by AuthGuard.
+> To create the first user, temporarily remove the `@UseGuards`
+> from the controller or create via seed/prisma studio.
 
-**2. Fazer login:**
+**2. Login:**
 
 ```bash
 curl -X POST http://localhost:3000/auth/sign-in \
   -H "Content-Type: application/json" \
-  -d '{"email":"joao@ex.com","password":"123456"}'
+  -d '{"email":"john@ex.com","password":"123456"}'
 ```
 
-**3. Acessar rota protegida:**
+**3. Access a protected route:**
 
 ```bash
 curl http://localhost:3000/user \
-  -H "Authorization: Bearer <token-recebido>"
+  -H "Authorization: Bearer <received-token>"
 ```

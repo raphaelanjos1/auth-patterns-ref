@@ -1,10 +1,10 @@
 # Auth Patterns Ref
 
-API de referencia para autenticacao e autorizacao com NestJS. O objetivo deste projeto e servir como base reutilizavel para projetos futuros, documentando padroes e boas praticas de seguranca.
+Reference API for authentication and authorization with NestJS. The goal of this project is to serve as a reusable base for future projects, documenting security patterns and best practices.
 
-## Arquitetura
+## Architecture
 
-Projeto construido com [NestJS](https://nestjs.com/) seguindo monolito modular por capacidade de negocio:
+Project built with [NestJS](https://nestjs.com/) following a modular monolith by business capability:
 
 ```
 src/
@@ -13,109 +13,109 @@ src/
 ├── auth/
 │   ├── authentication/   # JWT, sign-in, AuthGuard
 │   └── authorization/    # RBAC, PermissionsGuard
-├── audit-log/            # Auditoria (eventos + contrato v1)
-├── permissions-api/      # Facade RBAC para consumidores (ex.: user)
+├── audit-log/            # Audit (events + v1 contract)
+├── permissions-api/      # RBAC facade for consumers (e.g. user)
 └── shared/
     ├── database/         # Prisma
     ├── hashing/          # Argon2
-    └── contracts/        # JwtPayload e contratos compartilhados
+    └── contracts/        # JwtPayload and shared contracts
 ```
 
-> **`src/identity/`:** stack paralela **deprecada** — pasta ausente no disco. Stack ativa = `user` + `auth` + `audit-log`. Ver [decisao de stack](docs/identity-stack-decision.md).
+> **`src/identity/`:** deprecated parallel stack — not used. Active stack = `user` + `auth` + `audit-log`. See [identity stack decision](docs/identity-stack-decision.md).
 
 **Stack:**
 - **Framework:** NestJS 11 + Express
-- **Banco de dados:** PostgreSQL 17 + Prisma ORM
-- **Autenticacao:** JWT (Bearer token)
-- **Hashing:** Argon2id com salt + pepper
-- **Seguranca:** Helmet, CORS, Rate Limiting, Validacao de input
+- **Database:** PostgreSQL 17 + Prisma ORM
+- **Authentication:** JWT (Bearer token)
+- **Hashing:** Argon2id with salt + pepper
+- **Security:** Helmet, CORS, Rate Limiting, Input Validation
 
-## Como rodar o projeto
+## How to run the project
 
-### Pre-requisitos
+### Prerequisites
 
 - [Node.js](https://nodejs.org/) (v18+)
-- [Docker](https://www.docker.com/) e Docker Compose
+- [Docker](https://www.docker.com/) and Docker Compose
 - npm
 
-### 1. Clonar e instalar dependencias
+### 1. Clone and install dependencies
 
 ```bash
-git clone <url-do-repositorio>
+git clone <repository-url>
 cd auth-patterns-ref
 npm install
 ```
 
-### 2. Configurar variaveis de ambiente
+### 2. Configure environment variables
 
-Crie um arquivo `.env` na raiz do projeto baseado no `.env.example`:
+Create a `.env` file at the project root based on `.env.example`:
 
 ```bash
 cp .env.example .env
 ```
 
-Preencha as variaveis com os valores desejados:
+Fill in the variables with the desired values:
 
-| Variavel       | Descricao                              | Exemplo                                                          |
-| -------------- | -------------------------------------- | ---------------------------------------------------------------- |
-| `DATABASE_URL` | String de conexao do PostgreSQL        | `postgresql://postgres:postgres@localhost:5432/auth-patterns-ref` |
-| `JWT_SECRET`   | Chave secreta para assinatura do JWT   | (gere uma string aleatoria longa)                                |
-| `ARGON2_PEPPER`| Pepper para hashing de senhas          | (gere uma string aleatoria longa)                                |
-| `PORT`         | Porta da aplicacao (opcional)          | `3000`                                                           |
+| Variable        | Description                               | Example                                                           |
+| --------------- | ----------------------------------------- | ----------------------------------------------------------------- |
+| `DATABASE_URL`  | PostgreSQL connection string              | `postgresql://postgres:postgres@localhost:5432/auth-patterns-ref` |
+| `JWT_SECRET`    | Secret key for JWT signing                | (generate a long random string)                                   |
+| `ARGON2_PEPPER` | Pepper for password hashing               | (generate a long random string)                                   |
+| `PORT`          | Application port (optional)               | `3000`                                                            |
 
-### 3. Subir o banco de dados
+### 3. Start the database
 
 ```bash
 docker compose up -d
 ```
 
-Isso cria um container PostgreSQL 17 acessivel na porta `5432`.
+This creates a PostgreSQL 17 container accessible on port `5432`.
 
-### 4. Executar migrations do Prisma
+### 4. Run Prisma migrations
 
 ```bash
 npx prisma migrate dev
 ```
 
-Isso aplica as migrations e gera o Prisma Client.
+This applies the migrations and generates the Prisma Client.
 
-### 5. Iniciar a aplicacao
+### 5. Start the application
 
 ```bash
-# Desenvolvimento (watch mode)
+# Development (watch mode)
 npm run start:dev
 
-# Producao
+# Production
 npm run build
 npm run start:prod
 ```
 
-A API estara disponivel em `http://localhost:3000`.
+The API will be available at `http://localhost:3000`.
 
-## Scripts disponiveis
+## Available scripts
 
-| Comando              | Descricao                       |
+| Command              | Description                     |
 | -------------------- | ------------------------------- |
-| `npm run start:dev`  | Inicia em modo desenvolvimento  |
-| `npm run start:prod` | Inicia em modo producao         |
-| `npm run build`      | Compila o projeto               |
-| `npm run test`       | Executa testes unitarios        |
+| `npm run start:dev`  | Start in development mode       |
+| `npm run start:prod` | Start in production mode        |
+| `npm run build`      | Compile the project             |
+| `npm run test`       | Run unit tests                  |
 | `npm run test:e2e`   | E2E: smoke (`test/app.e2e-spec.ts`) + auth/user (`test/auth-user.e2e-spec.ts`, mocks) |
-| `npm run check:boundaries` | Valida imports entre dominios (fitness function) |
-| `npm run lint`       | Executa o linter                |
+| `npm run check:boundaries` | Validate cross-domain imports (fitness function) |
+| `npm run lint`       | Run the linter                  |
 
 ## API Docs (Swagger)
 
-Com a aplicacao rodando, acesse a documentacao interativa em `http://localhost:3000/docs`.
+With the application running, access the interactive documentation at `http://localhost:3000/docs`.
 
-Um arquivo `swagger.json` tambem e gerado automaticamente na raiz do projeto ao iniciar a aplicacao.
+A `swagger.json` file is also generated automatically at the project root when the application starts.
 
-## Documentacao
+## Documentation
 
-Documentacoes detalhadas estao disponiveis na pasta `docs/`:
+Detailed documentation is available in the `docs/` folder:
 
-- [Autenticacao JWT](docs/jwt-authentication.md)
-- [Medidas de Seguranca](docs/security.md)
+- [JWT Authentication](docs/jwt-authentication.md)
+- [Security Measures](docs/security.md)
 - [Prisma Migrations](docs/prisma-migrations.md)
-- [Autorizacao](docs/authorization.md)
-- [Auditoria](docs/audit-log.md)
+- [Authorization](docs/authorization.md)
+- [Audit Log](docs/audit-log.md)

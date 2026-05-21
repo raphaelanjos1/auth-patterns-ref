@@ -1,52 +1,52 @@
 # Audit Log Module
 
-## Visao Geral
+## Overview
 
-O modulo Audit Log registra automaticamente acoes relevantes da aplicacao para fins de rastreabilidade, compliance e metricas futuras. Ele captura operacoes CRUD de usuarios e logins bem-sucedidos.
+The Audit Log module automatically records relevant application actions for traceability, compliance, and future metrics. It captures user CRUD operations and successful logins.
 
-O modulo e completamente **desacoplado** da logica de negocios, utilizando uma arquitetura **event-driven** com `@nestjs/event-emitter`. Isso garante que falhas no audit nunca afetem a resposta da API.
+The module is completely **decoupled** from business logic, using an **event-driven** architecture with `@nestjs/event-emitter`. This ensures that audit failures never affect the API response.
 
-## Modelo de Dados
+## Data Model
 
-### Tabela `audit_log`
+### Table `audit_log`
 
-| Campo       | Tipo          | Descricao                              |
-|-------------|---------------|----------------------------------------|
-| id          | String (UUID) | Identificador unico do registro        |
-| action      | AuditAction   | Tipo da acao realizada                  |
-| entity_id   | String?       | ID da entidade afetada pela acao        |
-| user_id     | String?       | ID do usuario que realizou a acao       |
-| metadata    | Json?         | Dados contextuais (antes/depois, etc.)  |
-| created_at  | DateTime      | Timestamp de criacao do registro        |
+| Field       | Type          | Description                              |
+|-------------|---------------|------------------------------------------|
+| id          | String (UUID) | Unique identifier for the record         |
+| action      | AuditAction   | Type of action performed                 |
+| entity_id   | String?       | ID of the entity affected by the action  |
+| user_id     | String?       | ID of the user who performed the action  |
+| metadata    | Json?         | Contextual data (before/after, etc.)     |
+| created_at  | DateTime      | Record creation timestamp                |
 
 ### Enum `AuditAction`
 
-| Valor          | Descricao                        |
+| Value          | Description                      |
 |----------------|----------------------------------|
-| USER_CREATED   | Um novo usuario foi criado       |
-| USER_UPDATED   | Um usuario existente foi alterado|
-| USER_DELETED   | Um usuario foi removido          |
-| AUTH_LOGIN     | Login bem-sucedido               |
+| USER_CREATED   | A new user was created           |
+| USER_UPDATED   | An existing user was modified    |
+| USER_DELETED   | A user was removed               |
+| AUTH_LOGIN     | Successful login                 |
 
-## Semantica dos Campos
+## Field Semantics
 
 ### `userId` vs `entityId`
 
-- **`userId`**: Quem realizou a acao (o usuario autenticado)
-- **`entityId`**: Sobre qual entidade a acao foi realizada
+- **`userId`**: Who performed the action (the authenticated user)
+- **`entityId`**: Which entity the action was performed on
 
-**Exemplos:**
+**Examples:**
 
-| Cenario                          | userId   | entityId |
-|----------------------------------|----------|----------|
-| Admin cria um usuario            | admin-id | novo-user-id |
-| Admin atualiza outro usuario     | admin-id | user-id  |
-| Admin deleta um usuario          | admin-id | user-id  |
-| Usuario faz login                | user-id  | user-id  |
+| Scenario                         | userId   | entityId     |
+|----------------------------------|----------|--------------|
+| Admin creates a user             | admin-id | new-user-id  |
+| Admin updates another user       | admin-id | user-id      |
+| Admin deletes a user             | admin-id | user-id      |
+| User logs in                     | user-id  | user-id      |
 
-No caso de `AUTH_LOGIN`, ambos os campos sao iguais pois o usuario autentica a si mesmo.
+In the `AUTH_LOGIN` case, both fields are equal because the user authenticates themselves.
 
-## Fluxo de Eventos
+## Event Flow
 
 ```
 Controller
@@ -56,21 +56,21 @@ Service (UserService / AuthService)
     |
     | eventEmitter.emit('audit.log', AuditEvent)
     |
-    v (assincrono, nao bloqueia a resposta)
+    v (asynchronous, does not block the response)
 AuditLogService [@OnEvent('audit.log')]
     |
     v
 AuditLogRepository
     |
     v
-Banco de Dados (tabela audit_log)
+Database (audit_log table)
 ```
 
-## Formato do Metadata
+## Metadata Format
 
 ### USER_CREATED
 
-Snapshot dos campos do usuario criado:
+Snapshot of the created user's fields:
 
 ```json
 {
@@ -82,7 +82,7 @@ Snapshot dos campos do usuario criado:
 
 ### USER_UPDATED
 
-Lista de campos alterados com valores antes e depois:
+List of changed fields with before and after values:
 
 ```json
 {
@@ -95,7 +95,7 @@ Lista de campos alterados com valores antes e depois:
 
 ### USER_DELETED
 
-Snapshot do usuario antes da remocao (util para investigacao/recuperacao):
+Snapshot of the user before removal (useful for investigation/recovery):
 
 ```json
 {
@@ -107,7 +107,7 @@ Snapshot do usuario antes da remocao (util para investigacao/recuperacao):
 
 ### AUTH_LOGIN
 
-Email utilizado no login:
+Email used for login:
 
 ```json
 {
@@ -115,38 +115,38 @@ Email utilizado no login:
 }
 ```
 
-## Tratamento de Erros
+## Error Handling
 
-O listener utiliza `try/catch` para capturar qualquer erro durante a escrita do audit log. Erros sao logados via `Logger` do NestJS mas **nunca propagados** para a requisicao original. Isso significa que:
+The listener uses `try/catch` to capture any errors during audit log writing. Errors are logged via NestJS `Logger` but **never propagated** to the original request. This means:
 
-- Se o banco de audit estiver fora, a API continua funcionando normalmente
-- Falhas sao visiveis nos logs da aplicacao para monitoramento
+- If the audit database is down, the API continues working normally
+- Failures are visible in application logs for monitoring
 
-## Como Adicionar Novas Acoes
+## How to Add New Actions
 
-1. Adicione o novo valor ao enum `AuditAction` em `prisma/schema.prisma`
-2. Execute `npx prisma migrate dev` para criar a migration
-3. No service relevante, emita o evento:
+1. Add the new value to the `AuditAction` enum in `prisma/schema.prisma`
+2. Run `npx prisma migrate dev` to create the migration
+3. In the relevant service, emit the event:
 
 ```typescript
-import { AUDIT_EVENT, AuditEvent } from '../audit-log/events/audit.event';
+import { AUDIT_EVENT, AuditEvent } from '../events/audit.event';
 
 this.eventEmitter.emit(
   AUDIT_EVENT,
-  new AuditEvent('NOVA_ACAO', entityId, userId, { /* metadata */ }),
+  new AuditEvent('NEW_ACTION', entityId, userId, { /* metadata */ }),
 );
 ```
 
-4. O `AuditLogService` captura automaticamente qualquer evento emitido com o nome `audit.log`
+4. The `AuditLogService` automatically captures any event emitted with the name `audit.log`
 
-## Estrutura de Arquivos
+## File Structure
 
 ```
 src/audit-log/
-├── audit-log.module.ts          # Modulo NestJS
-├── audit-log.service.ts         # Listener de eventos
-├── audit-log.service.spec.ts    # Testes unitarios
-├── audit-log.repository.ts      # Acesso ao banco (Prisma)
+├── audit-log.module.ts          # NestJS module
+├── audit-log.service.ts         # Event listener
+├── audit-log.service.spec.ts    # Unit tests
+├── audit-log.repository.ts      # Database access (Prisma)
 └── events/
-    └── audit.event.ts           # Classe de evento e constante
+    └── audit.event.ts           # Event class and constant
 ```
