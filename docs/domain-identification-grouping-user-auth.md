@@ -3,7 +3,7 @@
 Groups architectural **components** into logical **domains** (business areas) to prepare for domain-aligned namespaces and future domain services. Uses the **domain-identification-grouping** skill.
 
 **Inputs:** [Domain Analysis](./domain-analysis-user-auth.md), [Component Inventory](./component-inventory.md), [Coupling Analysis](./coupling-analysis-user-auth.md), [Common Domain Detection](./common-domain-detection-user-auth.md), [Component Flattening](./component-flattening-analysis-user-auth.md)  
-**Scope:** Logical components under `src/user/`, `src/auth/`, `src/audit-log/`, `src/shared/` (production layout; `src/identity/` noted as parallel, out of scope)  
+**Scope:** Logical components under `src/user/`, `src/auth/`, `src/audit-log/`, `src/permissions-api/`, `src/shared/` (production layout). `src/identity/` deprecated — [identity-stack-decision.md](./identity-stack-decision.md).  
 **Date:** 2026-05-20
 
 ---
@@ -97,7 +97,7 @@ Domains are **logical business areas** (capabilities), not technical layers (con
 
 | Path | Note |
 |------|------|
-| `src/identity/` | Parallel, richer IAM layout (domain layer, ports, events). Not grouped here; if it becomes primary, re-run this analysis and deprecate `user/` + `auth/`. |
+| `src/identity/` | **Deprecated** — not on disk. Active IAM = `user/` + `auth/` + `permissions-api/`. See [identity-stack-decision.md](./identity-stack-decision.md). |
 
 ---
 

@@ -3,7 +3,7 @@
 Step-by-step decomposition plan and migration roadmap from monolith toward a service-ready layout. Uses the **decomposition-planning-roadmap** skill and synthesizes prior analyses in `docs/`.
 
 **Inputs:** [Domain Analysis](./domain-analysis-user-auth.md), [Component Inventory](./component-inventory.md), [Coupling Analysis](./coupling-analysis-user-auth.md), [Common Domain Detection](./common-domain-detection-user-auth.md), [Component Flattening](./component-flattening-analysis-user-auth.md), [Domain Identification & Grouping](./domain-identification-grouping-user-auth.md)  
-**Scope:** `src/user/`, `src/auth/`, `src/audit-log/`, `src/shared/` · `src/identity/` tracked as parallel risk  
+**Scope:** `src/user/`, `src/auth/`, `src/audit-log/`, `src/permissions-api/`, `src/shared/` · `src/identity/` **deprecated** ([identity-stack-decision.md](./identity-stack-decision.md))  
 **Date:** 2026-05-20
 
 ---
@@ -52,7 +52,7 @@ This repo is a **small reference implementation**. Timelines below use **sprints
 | Duplication | Audit emit boilerplate; `UserRole` enum spread; dual User repos | Common domain |
 | Structure | 13 orphaned files at `user/`, `auth/`, `audit-log/` roots | Flattening |
 | Extraction | First *logical* split: User Directory vs Access Control (Option B) | Domain analysis |
-| Parallel code | `src/identity/` not in `AppModule` — dual-stack risk | Inventory, common domain |
+| ~~Parallel code~~ | **Resolved (Story 8):** deprecate `src/identity/`; active stack only | [identity-stack-decision.md](./identity-stack-decision.md) |
 
 ### What remains before Pattern 6
 
@@ -234,7 +234,7 @@ Scale: **3** = High, **2** = Medium, **1** = Low.
 |----------|-----------|
 | Re-run component sizing | When any component >30% scope or >150 stmts |
 | Re-run coupling analysis | After new cross-module imports |
-| Review `identity/` vs `user`+`auth` | Before major features |
+| ~~Review `identity/` vs `user`+`auth`~~ | **Done** — single stack `user`+`auth` |
 | Update this roadmap | Each quarter or after major refactor |
 
 ---
@@ -389,7 +389,7 @@ so that repositories are not duplicated without a boundary.
 
 ---
 
-### Story 8: Resolve identity parallel stack (spike)
+### Story 8: Resolve identity parallel stack (spike) — **Done**
 
 **As an architect**, I need a decision on `src/identity/` vs `src/user`+`src/auth`  
 to support a single IAM decomposition path  
@@ -397,7 +397,7 @@ so that future work does not duplicate guards, audit, and authorization.
 
 **Acceptance criteria:**
 
-- [ ] Written decision: deprecate identity, migrate to identity, or maintain dual with boundaries
+- [x] Written decision: **deprecate** `src/identity/` — [identity-stack-decision.md](./identity-stack-decision.md)
 - [ ] If migrate: ordered epic list (not full execution in spike)
 
 **Estimate:** 3 story points (1–2 days spike)  
@@ -479,7 +479,7 @@ so that User Directory exposes identity claims API only.
 
 | ID | Blocker / risk | Mitigation | Owner |
 |----|----------------|------------|-------|
-| B1 | `src/identity/` dual stack | Story 8 spike; pick single path | Architect |
+| ~~B1~~ | ~~`src/identity/` dual stack~~ | **Closed** — deprecate; stack = `user`+`auth` | — |
 | B2 | Shared Kernel `User` table | Story 4 + Story 7 ports | Dev |
 | B3 | No product driver for microservices | Keep modular monolith; revisit gate G5 | Product |
 | B4 | Reference size masks extraction cost | Do not extract until metrics exceed thresholds | Architect |
@@ -503,7 +503,7 @@ Re-generate or extend this roadmap when:
 
 - Any logical component exceeds **30%** of scoped statements or **150** statements absolute ([inventory](./component-inventory.md))
 - New cross-domain imports appear (fail fitness function)
-- `src/identity/` wired into `AppModule`
+- ~~`src/identity/` wired into `AppModule`~~ (rejected — not in scope)
 - Production deployment requires independent IAM or Audit scaling
 - Major Nest/Prisma upgrade changes guard or schema boundaries
 

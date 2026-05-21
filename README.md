@@ -114,8 +114,10 @@ A `swagger.json` file is also generated automatically at the project root when t
 
 Detailed documentation is available in the `docs/` folder:
 
+- [Coding patterns](docs/coding-patterns.md) — canonical guide for agents (active stack)
 - [JWT Authentication](docs/jwt-authentication.md)
 - [Security Measures](docs/security.md)
 - [Prisma Migrations](docs/prisma-migrations.md)
 - [Authorization](docs/authorization.md)
 - [Audit Log](docs/audit-log.md)
+- [Identity stack decision](docs/identity-stack-decision.md) — why there is no `src/identity/`

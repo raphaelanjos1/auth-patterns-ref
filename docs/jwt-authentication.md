@@ -85,7 +85,7 @@ Currently protects all routes in the `user` module.
 
 ```typescript
 import { UseGuards } from '@nestjs/common';
-import { AuthGuard } from '../identity/authentication/auth.guard';
+import { AuthGuard } from '../auth/authentication/auth.guard';
 
 @UseGuards(AuthGuard)
 @Controller('example')
@@ -93,6 +93,8 @@ export class ExampleController {
   // all routes in this controller require a token
 }
 ```
+
+> In this project, `AuthGuard` is registered **globally** in `AppModule`. Use `@Public()` on routes that must skip JWT (e.g. `POST /auth/sign-in`). Per-controller `@UseGuards(AuthGuard)` is optional when not using the global guard.
 
 To protect only a specific route:
 
@@ -122,7 +124,7 @@ The generated JWT contains:
 |---------|------------------------------------------------|
 | `sub`   | User ID (subject — JWT convention)             |
 | `email` | User email                                     |
-| `role`  | User role (ADMIN, USER, MANAGER)               |
+| `role`  | User role (`UserRole` from Prisma: ADMIN, USER, MANAGER) |
 | `iat`   | Issuance timestamp (issued at)                 |
 | `exp`   | Expiration timestamp (iat + lifetime)          |
 
@@ -152,16 +154,22 @@ needing to import `JwtModule` again.
 ## File structure
 
 ```
-src/identity/
-  identity.module.ts                    — Unified module (JwtModule, DatabaseModule, HashingModule)
-  user.repository.ts                    — Single User aggregate repository (includes findByEmailWithPassword)
+src/auth/
+  auth.module.ts                        — JwtModule (global), credentials port, AbilityFactory
   authentication/
     auth.controller.ts                  — POST /auth/sign-in
-    auth.service.ts                     — Validation and token generation logic
-    auth.guard.ts                       — Guard that validates the Bearer token
-    public.decorator.ts                 — Marks public routes (AuthGuard bypass)
-    dto/
-      sign-in.dto.ts                    — Sign-in body validation
+    auth.service.ts                     — Credentials verify + JWT + publishAudit
+    auth.repository.ts                  — IUserCredentialsReader adapter (password projection)
+    auth.guard.ts                       — Bearer JWT validation → request.user
+    auth.guard.spec.ts
+    public.decorator.ts                 — @Public() — bypass global AuthGuard
+    sign-in.dto.ts                      — Sign-in body validation
+
+src/shared/contracts/
+  jwt-payload.ts                        — JwtPayload SSOT (sub, email, role)
+
+src/user/domain/ports/
+  user-credentials-reader.port.ts       — Port implemented by AuthRepository
 ```
 
 ## Testing

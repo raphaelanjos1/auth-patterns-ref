@@ -6,6 +6,7 @@
 Before implementing any feature:
 1. Read `docs/coding-patterns.md` first.
 2. Follow the file references inside it to load the specific examples you need.
+3. For brownfield context: `.specs/codebase/ARCHITECTURE.md`, `.specs/features/modular-monolith-iam/spec.md`.
 
 Do not implement without this step.
 
@@ -28,6 +29,7 @@ Trigger on: "how do I use X", "generate X with library Y", "configure Z", any ne
 - Lint: `yarn lint`
 - Watch: `yarn test:watch`
 - E2E: `yarn test:e2e`
+- Domain boundaries: `yarn run check:boundaries`
 
 ## Database (Prisma — no nx in this project)
 - Generate migration: `yarn prisma migrate dev --name <name>`
@@ -42,15 +44,17 @@ Trigger on: "how do I use X", "generate X with library Y", "configure Z", any ne
 - No `any` type.
 
 ## Architecture
-- Use skills `clean-arch-lite` + `tactical-ddd` for all new modules and refactors.
-- Always read `docs/coding-patterns.md` before implementing — it has canonical examples grounded in `src/identity/`.
-- No sub-folders inside a bounded context at the application layer (flat root: only `domain/`, `infrastructure/`, `dto/`, `authorization/` get sub-folders).
+- **Active stack (wired in `AppModule`):** `src/user/` + `src/auth/` + `src/audit-log/` + `src/permissions-api/` + `src/shared/`. There is **no** `src/identity/` — see [docs/identity-stack-decision.md](docs/identity-stack-decision.md).
+- Use skills `clean-arch-lite` + `tactical-ddd` for new modules and refactors.
+- Always read `docs/coding-patterns.md` before implementing — canonical examples are grounded in the active stack above.
+- IAM layout: `user/application/` for User Directory; `auth/authentication/` and `auth/authorization/` for Access Control; `user/domain/ports/` for persistence ports only (not a full `domain/` tree everywhere).
+- Cross-domain imports: IAM → audit only via `audit-log/events/`; user → auth only via `permissions-api` or `user/domain/ports`. Enforced by `yarn run check:boundaries`.
 
 ## Testing
-- Domain tests: hand-roll fakes for ports, no `Test.createTestingModule`.
-- Service tests: NestJS container with `{ provide: SYMBOL, useValue: mock }`.
-- Prefer real implementations over mocks.
+- Service/guard tests: NestJS container with `{ provide: SYMBOL, useValue: mock }`.
+- Prefer real implementations over mocks when a real DB is available.
 - Do not mock the database in service-level tests when a real DB is available.
+- E2E: `test/auth-user.e2e-spec.ts` (mocked Prisma).
 
 ## Implementation Plans
 - Write high quality, maintainable code — avoid overengineering.

@@ -4,70 +4,68 @@
 
 **Unit/Integration:** Jest 30 + ts-jest  
 **E2E:** Jest + Supertest (`test/jest-e2e.json`)  
-**Coverage:** `npm run test:cov` → `coverage/`
+**Coverage:** `yarn test:cov` → `coverage/`
 
 ## Test Organization
 
-**Location:** Co-located `src/**/*.spec.ts`; E2E em `test/*.e2e-spec.ts`  
-**Naming:** `<unit>.spec.ts`, `app.e2e-spec.ts`  
-**Structure:** `describe` por classe; mocks de `PrismaService` via mapper global
+**Location:** Co-located `src/**/*.spec.ts`; E2E in `test/*.e2e-spec.ts`  
+**Naming:** `<unit>.spec.ts`, `app.e2e-spec.ts`, `auth-user.e2e-spec.ts`  
+**Structure:** `describe` per class; Prisma mocked globally
 
 ## Testing Patterns
 
-### Unit tests (services, guards, domain)
+### Unit tests (services, guards)
 
-**Approach:** `@nestjs/testing` com providers mockados; domain tests sem módulo Nest  
-**Examples:** `user.service.spec.ts`, `auth.guard.spec.ts`, `identity/domain/user.entity.spec.ts`
+**Approach:** `@nestjs/testing` with `{ provide: SYMBOL, useValue: mock }`  
+**Examples:** `user.service.spec.ts`, `auth.service.spec.ts`, `auth.guard.spec.ts`, `permissions.guard.spec.ts`, `ability-permission-checker.spec.ts`
 
 ### E2E
 
-**Approach:** `Test.createTestingModule({ imports: [AppModule] })` + supertest + `ValidationPipe` global  
-**Coverage today:** `GET /` smoke; `POST /auth/sign-in`; `GET/POST/PATCH/DELETE /user` (mocks em `test/auth-user.e2e-spec.ts`; `afterEach` com `app.close()` em ambos os e2e)
+**Approach:** `Test.createTestingModule({ imports: [AppModule] })` + supertest + global `ValidationPipe`  
+**Coverage:** `test/app.e2e-spec.ts` (smoke); `test/auth-user.e2e-spec.ts` (sign-in 401/201, `GET /user/:id` 401/200 with ADMIN token, mocks)
 
 ## Test Execution
 
 | Command | Purpose |
 |---------|---------|
-| `npm test` | Unit (rootDir `src`) |
-| `npm run test:watch` | Watch mode |
-| `npm run test:cov` | Coverage |
-| `npm run test:e2e` | E2E |
-| `npm run lint` | ESLint |
-| `npm run build` | Compile |
+| `yarn test` | Unit (`src`) |
+| `yarn test:watch` | Watch |
+| `yarn test:cov` | Coverage |
+| `yarn test:e2e` | E2E |
+| `yarn lint` | ESLint |
+| `yarn build` | Compile |
+| `yarn run check:boundaries` | Import fitness |
 
 ## Coverage Targets
 
-**Current:** Não documentado/enforced  
-**Goals:** Manter testes verdes em cada story; não reduzir contagem de testes silenciosamente
+**Current:** Not enforced in CI  
+**Goals:** Green tests per story; do not drop coverage silently
 
 ## Test Coverage Matrix
 
 | Code Layer | Required Test Type | Location Pattern | Run Command |
 |------------|-------------------|------------------|-------------|
-| Domain entity (`identity/domain`) | unit | `src/identity/domain/**/*.spec.ts` | `npm test` |
-| Application service | unit | `src/**/*.service.spec.ts` | `npm test` |
-| HTTP controller | unit | `src/**/*.controller.spec.ts` | `npm test` |
-| Guards / authorization | unit | `src/**/authorization/*.spec.ts`, `auth.guard.spec.ts` | `npm test` |
-| Repository (Prisma) | unit (mocked) | via service specs + prisma mock | `npm test` |
-| Module wiring / HTTP flows | e2e | `test/*.e2e-spec.ts` | `npm run test:e2e` |
-| Audit listener | unit | `audit-log.service.spec.ts` | `npm test` |
+| Application service | unit | `src/**/*.service.spec.ts` | `yarn test` |
+| HTTP controller | unit | `src/**/*.controller.spec.ts` | `yarn test` |
+| Guards / authorization | unit | `src/auth/**/*.spec.ts` | `yarn test` |
+| Audit contract | unit | `audit-log/contracts/*.spec.ts`, `audit-log.service.spec.ts` | `yarn test` |
+| Repository (Prisma) | unit (mocked) | via service specs | `yarn test` |
+| HTTP flows | e2e | `test/*.e2e-spec.ts` | `yarn test:e2e` |
 
-**Gap (opcional):** DB real em e2e (Testcontainers).
+**Optional gap:** E2E with real PostgreSQL (Testcontainers).
 
 ## Parallelism Assessment
 
-| Test Type | Parallel-Safe? | Isolation Model | Evidence |
-|-----------|----------------|-----------------|----------|
-| Unit (mocked Prisma) | Yes | `__mocks__/prisma.service.ts`, no shared DB | `package.json` moduleNameMapper |
-| E2E (current) | Yes* | In-memory app per test file; no DB assertions yet | `app.e2e-spec.ts` only hits `/` |
-| E2E (future with DB) | No | Would need Testcontainers or dedicated DB | Not implemented |
-
-\*Reavaliar quando E2E usar PostgreSQL real.
+| Test Type | Parallel-Safe? | Isolation Model |
+|-----------|----------------|-----------------|
+| Unit (mocked Prisma) | Yes | `__mocks__/prisma.service.ts` |
+| E2E (current) | Yes | In-memory app; mocked Prisma in auth-user |
+| E2E (future + DB) | No | Would need dedicated DB |
 
 ## Gate Check Commands
 
-| Gate Level | When to Use | Command |
-|------------|-------------|---------|
-| Quick | After refactor story (move files, SSOT, helper) | `npm test` |
-| Full | After HTTP/guard behavior change | `npm test` && `npm run test:e2e` |
-| Build | Before merge / milestone | `npm run build` && `npm run lint` && `npm test` && `npm run test:e2e` |
+| Gate | When | Command |
+|------|------|---------|
+| Quick | Refactor / ports / audit helper | `yarn test` |
+| Full | HTTP / guards | `yarn test` && `yarn test:e2e` |
+| Build | Before merge | `yarn build` && `yarn lint` && `yarn test` && `yarn test:e2e` && `yarn run check:boundaries` |

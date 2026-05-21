@@ -37,7 +37,7 @@ Restricts which domains can make requests to the API. Only the origins listed in
 
 ## 3. Rate Limiting (Throttler)
 
-**Files:** `src/app.module.ts`, `src/identity/authentication/auth.controller.ts`
+**Files:** `src/app.module.ts`, `src/auth/authentication/auth.controller.ts`
 
 ### Global limits (all routes)
 
@@ -84,7 +84,7 @@ Example: if the DTO accepts `email` and `password`, sending `{ "email": "...", "
 
 ## 5. JWT Authentication with Global Guard
 
-**Files:** `src/identity/authentication/auth.guard.ts`, `src/app.module.ts`
+**Files:** `src/auth/authentication/auth.guard.ts`, `src/app.module.ts`
 
 The `AuthGuard` is registered globally via `APP_GUARD`, ensuring that **all routes are protected by default**. Only routes explicitly marked with the `@Public()` decorator are accessible without authentication.
 

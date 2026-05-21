@@ -1,18 +1,18 @@
 # Code Conventions
 
-**Observed in:** stack ativa (`user`, `auth`, `audit-log`, `shared`)  
+**Observed in:** active stack (`user`, `auth`, `audit-log`, `permissions-api`, `shared`)  
 **Target for new/refactored code:** [clean-arch-lite](../../.cursor/skills/clean-arch-lite/SKILL.md)
 
 ## Architectural Rules (clean-arch-lite)
 
-| Regra | Aplicação neste repo |
-|-------|----------------------|
-| Domínio sem deps de framework/ORM | Obrigatório em `src/identity/domain/`; aspiracional na stack ativa |
-| Porta (interface + Symbol) | Só ao cruzar DB, JWT, hashing, clock — Story 7 introduz ports de User |
-| Application layer flat | Controllers + services + DTOs no root do módulo (ou `authentication/` leaf, não `application/` por feature) |
-| Sem use-case class por método | Métodos em `UserService`, `AuthService` |
-| Sem mapper por campo | `rehydrate` / `toPersistence` na entidade quando houver entidade de domínio |
-| ≤4 arquivos por campo novo | Meta ao evoluir schema |
+| Rule | Application in this repo |
+|------|--------------------------|
+| Ports at infra boundaries | `user/domain/ports/` (`USER_DIRECTORY`, `USER_CREDENTIALS_READER`) |
+| Application layer | `user/application/` leaf; `auth/authentication/` + flat `auth.module` |
+| No use-case class per method | Methods on `UserService`, `AuthService` |
+| No mapper per field | Prisma projections + `omit` on directory reads |
+| ≤4 files per new field | Meta when evolving schema |
+| Rich `domain/` entity tree | Optional for new modules — **not** used in active IAM |
 
 ## Naming Conventions
 
@@ -20,56 +20,58 @@
 
 - `*.module.ts`, `*.controller.ts`, `*.service.ts`, `*.repository.ts`
 - Specs co-located: `*.spec.ts`
-- DTOs: `src/<module>/dto/<action>.dto.ts` — ex.: `create-user.dto.ts`, `sign-in.dto.ts`
+- DTOs: `src/user/dto/*.dto.ts`, `src/auth/authentication/sign-in.dto.ts`
+- Ports: `src/user/domain/ports/*.port.ts`
 
 **Classes:**
 
-- PascalCase + sufixo de papel: `UserService`, `AuthRepository`, `PermissionsGuard`
+- PascalCase + role suffix: `UserService`, `AuthRepository`, `PermissionsGuard`
 
 **Enums:**
 
-- Preferir `UserRole`, `AuditAction` de `@generated/prisma` (SSOT — Story 2)
-- Evitar `export enum UserRole` duplicado em DTOs
+- `UserRole`, `AuditAction` from `@generated/prisma` (SSOT)
+- No duplicate `export enum UserRole` in DTOs
 
-**Ports (quando existirem):**
+**Ports:**
 
-- `*.port.ts` com `export const X_PORT = Symbol('X_PORT')` + interface `IX`
+- `export const X = Symbol('X')` + `interface IX` in same `*.port.ts`
 
 ## Code Organization
 
-**Imports:** Relativos entre módulos (`../shared/...`); Prisma via `@generated/prisma` quando adotado.
+**Imports:** Relative between modules; Prisma via `@generated/prisma`.
 
 **NestJS modules:**
 
-- `providers`: repositories + services
-- `exports`: apenas o que outros módulos precisam (ex.: `AbilityFactory`)
-- Guards globais em `AppModule`, não duplicar por módulo
+- `providers`: port bindings + services
+- `exports`: what other modules need (`AbilityFactory`, `AbilityPermissionChecker` from auth)
+- Global guards in `AppModule`
 
 **DTO validation:**
 
-- `class-validator` + `ValidationPipe` global (`whitelist`, `forbidNonWhitelisted`)
+- `class-validator` + global `ValidationPipe` (`whitelist`, `forbidNonWhitelisted`)
 
 ## Error Handling
 
-- HTTP: exceções Nest (`NotFoundException`, `ConflictException`, `UnauthorizedException`)
-- Mensagens genéricas em credenciais inválidas (não vazar se email existe)
+- HTTP: Nest exceptions (`NotFoundException`, `ConflictException`, `UnauthorizedException`)
+- Generic message on invalid credentials (no email enumeration)
 
-## Cross-Module Rules (governance — Story 6)
+## Cross-Module Rules (Story 6 / T12)
 
-- IAM → Audit: apenas `audit-log/events/*` e helper de publish
-- IAM → Shared: `shared/database`, `shared/hashing`, `shared/contracts`, swagger
-- Proibido: IAM importar `audit-log.service` diretamente
-- user → auth: apenas `permissions-api` (não `auth/authorization`, `authentication/`, etc.)
-- Verificação local: `npm run check:boundaries` (`scripts/check-domain-boundaries.mjs`; allowlist no cabeçalho do script)
+- IAM → Audit: only `audit-log/events/*` (`publishAudit`)
+- IAM → Shared: `shared/database`, `shared/hashing`, `shared/contracts`, `shared/swagger`
+- Forbidden: IAM → `audit-log.service` / `audit-log.module`
+- user → auth: `permissions-api` or `user/domain/ports` only
+- Verification: `yarn run check:boundaries`
 
 ## Comments / Docs
 
-- Docs narrativos em `docs/` (JWT, security, audit)
-- Análises arquiteturais DDD em `docs/*-user-auth.md`
-- Spec executável em `.specs/`
+- Operational guides: `docs/` (JWT, security, audit, [coding-patterns.md](../../docs/coding-patterns.md))
+- DDD analyses: `docs/*-user-auth.md`
+- Executable spec: `.specs/features/modular-monolith-iam/`
 
 ## Testing Conventions
 
-- Jest + `@nestjs/testing` para services/controllers/guards
-- Mock Prisma via `moduleNameMapper` em `package.json`
-- Domain entity tests sem Nest (ex.: `identity/domain/user.entity.spec.ts`)
+- Jest + `@nestjs/testing` for services/controllers/guards
+- Mock Prisma via `moduleNameMapper` → `src/__mocks__/prisma.service.ts`
+- E2E: `test/auth-user.e2e-spec.ts` with mocked DB
+- Rich domain unit tests without Nest: only when `domain/*.entity.ts` exists

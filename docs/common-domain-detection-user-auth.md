@@ -363,7 +363,7 @@ export function publishAudit(emitter: EventEmitter2, event: AuditEvent): void {
 
 #### C. User persistence ports (before service split)
 
-**Target:** new `src/user/ports/` or `src/identity-access/ports/` (name when introduced)
+**Target:** `src/user/domain/ports/` (implemented — `USER_DIRECTORY`, `USER_CREDENTIALS_READER`)
 
 **Steps:**
 

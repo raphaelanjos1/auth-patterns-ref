@@ -126,27 +126,36 @@ The listener uses `try/catch` to capture any errors during audit log writing. Er
 
 1. Add the new value to the `AuditAction` enum in `prisma/schema.prisma`
 2. Run `npx prisma migrate dev` to create the migration
-3. In the relevant service, emit the event:
+3. In the relevant IAM service, call the helper (do not import `AuditLogService`):
 
 ```typescript
-import { AUDIT_EVENT, AuditEvent } from '../events/audit.event';
+import { publishAudit } from '../../audit-log/events/publish-audit';
 
-this.eventEmitter.emit(
-  AUDIT_EVENT,
-  new AuditEvent('NEW_ACTION', entityId, userId, { /* metadata */ }),
-);
+publishAudit(this.eventEmitter, {
+  action: 'NEW_ACTION',
+  entityId,
+  userId,
+  metadata: { /* context */ },
+});
 ```
 
-4. The `AuditLogService` automatically captures any event emitted with the name `audit.log`
+4. `publishAudit` sets `schemaVersion` from [audit-contract.ts](../src/audit-log/contracts/audit-contract.ts). The `AuditLogService` listener persists events named `audit.log`.
 
 ## File Structure
 
 ```
 src/audit-log/
-├── audit-log.module.ts          # NestJS module
-├── audit-log.service.ts         # Event listener
-├── audit-log.service.spec.ts    # Unit tests
-├── audit-log.repository.ts      # Database access (Prisma)
+├── audit-log.module.ts
+├── audit-log.service.ts         # @OnEvent listener (async)
+├── audit-log.repository.ts
+├── contracts/
+│   ├── audit-contract.ts        # AUDIT_CONTRACT_VERSION
+│   └── audit-event.v1.schema.json
 └── events/
-    └── audit.event.ts           # Event class and constant
+    ├── audit.event.ts           # AUDIT_EVENT + AuditEvent class
+    ├── audit-actions.ts         # typed actions (align with Prisma AuditAction)
+    ├── publish-audit.ts         # IAM modules import this only
+    └── index.ts
 ```
+
+IAM modules (`user`, `auth`) may import **only** `audit-log/events/*` — see `yarn run check:boundaries`.

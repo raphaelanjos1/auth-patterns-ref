@@ -2,7 +2,7 @@
 
 ## Problem Statement
 
-O repositório já possui análises DDD completas (`docs/`) mas **zero implementação** das melhorias estruturais (flatten, contratos audit, SSOT de roles). A árvore de código não reflete os subdomínios IAM/Audit/Shared; existe ainda uma stack paralela em `src/identity/` não integrada. Precisamos de requisitos testáveis e rastreáveis para executar Phase 1–2 **sem** microserviços e **sem** clean architecture verbosa.
+O repositório possui análises DDD em `docs/` e implementação Phase 1–3 na stack ativa (`user` + `auth` + `audit-log` + `permissions-api`). A stack paralela `src/identity/` foi **deprecada** ([docs/identity-stack-decision.md](../../docs/identity-stack-decision.md)). Este spec registra requisitos executados (flatten, audit contract, ports, boundaries, extraction readiness) **sem** microserviços deployados.
 
 ## Goals
 

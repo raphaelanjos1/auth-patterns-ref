@@ -106,7 +106,9 @@
 
 ## Future Considerations
 
-- Atualizar `README.md` (estrutura `audit-log`, remover stack desatualizada)
-- Unificar package manager (npm vs yarn)
-- E2E cobrindo fluxos auth/user reais
-- Adotar padrões de `src/identity/` (domain + ports) só onde Story 8 recomendar
+- ~~Atualizar `README.md` / docs operacionais~~ — docs sweep pós-merge (coding-patterns, JWT, auth, security)
+- Unificar package manager (npm vs yarn) em exemplos de README
+- ~~E2E auth/user~~ — `test/auth-user.e2e-spec.ts` (mocks)
+- ~~Story 8 / `src/identity/`~~ — **deprecate**; ports em `user/domain/ports/` na stack ativa
+- E2E com PostgreSQL real (opcional)
+- Extração física de microserviços quando G5 passar

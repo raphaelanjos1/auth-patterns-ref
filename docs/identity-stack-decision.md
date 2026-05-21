@@ -50,7 +50,7 @@ The **active, wired stack** is `user` (User Directory) + `auth` (Authentication 
 
 - **Positive:** Single IAM mental model for contributors and agents; roadmap Stories 9–10 and ports work stay on `user`/`auth`.
 - **Negative:** Tactical DDD patterns demonstrated only in docs/examples, not a live `identity/domain/` tree in-repo (acceptable for reference scope).
-- **Docs:** References to “parallel `src/identity/`” in `docs/` and `.specs/codebase/` should be read as **deprecated / historical** until updated in a docs sweep.
+- **Docs:** Operational guides (`coding-patterns`, JWT, authorization, security, audit) and `.specs/codebase/` now describe the active `user`+`auth` stack. DDD analysis docs may still mention `identity/` as historical context.
 
 ---
 
