@@ -4,19 +4,24 @@ Reference API for authentication and authorization with NestJS. The goal of this
 
 ## Architecture
 
-Project built with [NestJS](https://nestjs.com/) following a modular architecture with layer separation:
+Project built with [NestJS](https://nestjs.com/) following a modular monolith by business capability:
 
 ```
 src/
-├── identity/       # Identity bounded context
-│   ├── authentication/  # JWT, guards, login
-│   ├── authorization/   # RBAC + policy map
-│   └── user/            # User CRUD
-├── audit-log/      # Audit events
+├── user/
+│   └── application/      # User Directory (CRUD, ports)
+├── auth/
+│   ├── authentication/   # JWT, sign-in, AuthGuard
+│   └── authorization/    # RBAC, PermissionsGuard
+├── audit-log/            # Audit (events + v1 contract)
+├── permissions-api/      # RBAC facade for consumers (e.g. user)
 └── shared/
-    ├── database/   # Prisma service
-    └── hashing/    # Password hashing (Argon2)
+    ├── database/         # Prisma
+    ├── hashing/          # Argon2
+    └── contracts/        # JwtPayload and shared contracts
 ```
+
+> **`src/identity/`:** deprecated parallel stack — not used. Active stack = `user` + `auth` + `audit-log`. See [identity stack decision](docs/identity-stack-decision.md).
 
 **Stack:**
 - **Framework:** NestJS 11 + Express
@@ -95,7 +100,8 @@ The API will be available at `http://localhost:3000`.
 | `npm run start:prod` | Start in production mode        |
 | `npm run build`      | Compile the project             |
 | `npm run test`       | Run unit tests                  |
-| `npm run test:e2e`   | Run end-to-end tests            |
+| `npm run test:e2e`   | E2E: smoke (`test/app.e2e-spec.ts`) + auth/user (`test/auth-user.e2e-spec.ts`, mocks) |
+| `npm run check:boundaries` | Validate cross-domain imports (fitness function) |
 | `npm run lint`       | Run the linter                  |
 
 ## API Docs (Swagger)
@@ -108,8 +114,10 @@ A `swagger.json` file is also generated automatically at the project root when t
 
 Detailed documentation is available in the `docs/` folder:
 
+- [Coding patterns](docs/coding-patterns.md) — canonical guide for agents (active stack)
 - [JWT Authentication](docs/jwt-authentication.md)
 - [Security Measures](docs/security.md)
 - [Prisma Migrations](docs/prisma-migrations.md)
 - [Authorization](docs/authorization.md)
 - [Audit Log](docs/audit-log.md)
+- [Identity stack decision](docs/identity-stack-decision.md) — why there is no `src/identity/`

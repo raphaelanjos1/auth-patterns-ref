@@ -8,6 +8,9 @@ export class PrismaService {
       delete: jest.fn(),
       count: jest.fn(),
     },
+    auditLog: {
+      create: jest.fn().mockResolvedValue({}),
+    },
   };
 
   async onModuleInit() {}

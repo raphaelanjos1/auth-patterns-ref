@@ -50,7 +50,7 @@ Request with Bearer token
 | User:UPDATE   |  ✅   |   ✅    |  ❌  |
 | User:DELETE   |  ✅   |   ❌    |  ❌  |
 
-Defined in `src/identity/authorization/policy-map.ts`:
+Defined in `src/auth/authorization/policy-map.ts`:
 
 ```typescript
 export const POLICY_MAP: Record<UserRole, Permission[]> = {
@@ -74,7 +74,7 @@ export const POLICY_MAP: Record<UserRole, Permission[]> = {
 Apply the `@CheckPermissions` decorator to the route:
 
 ```typescript
-import { Action, CheckPermissions, Subject } from '../identity/authorization';
+import { Action, CheckPermissions, Subject } from '../../permissions-api';
 
 @Controller('user')
 export class UserController {
@@ -94,6 +94,17 @@ export class UserController {
 
 Routes **without** `@CheckPermissions` are accessible to any authenticated user
 (the `PermissionsGuard` allows access when no metadata is found).
+
+### Permissions API facade (`permissions-api/`)
+
+Modules outside `auth` must not import `src/auth/authorization/*` directly. Import from `src/permissions-api/` instead — enforced by `yarn run check:boundaries`.
+
+| Export | Purpose |
+|--------|---------|
+| `Action`, `Subject`, `CheckPermissions` | Same as authorization barrel |
+| `IPermissionChecker` | Port for guard implementations (`AbilityPermissionChecker` in auth) |
+
+Reference: [permissions-api/index.ts](../src/permissions-api/index.ts), [user.controller.ts](../src/user/application/user.controller.ts).
 
 ## Components
 
@@ -159,14 +170,19 @@ The guard:
 ## File structure
 
 ```
-src/identity/authorization/
-  index.ts                       — Barrel exports
+src/auth/authorization/
+  index.ts                       — Barrel exports (auth-internal)
   action.enum.ts                 — Actions enum (CREATE, READ, UPDATE, DELETE)
   subject.enum.ts                — Resources enum (USER)
   policy-map.ts                  — Role → permissions matrix
   ability-factory.ts             — Generates Ability with can()/cannot()
+  ability-permission-checker.ts  — IPermissionChecker adapter
   check-permissions.decorator.ts — @CheckPermissions decorator
   permissions.guard.ts           — Global guard that checks permissions
+
+src/permissions-api/
+  index.ts                       — Public facade for other modules (e.g. user)
+  permission-checker.port.ts     — IPermissionChecker interface
 ```
 
 ## How to add a new resource

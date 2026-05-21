@@ -5,14 +5,16 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuditLogModule } from './audit-log/audit-log.module';
-import { AuthGuard } from './identity/auth.guard';
-import { IdentityModule } from './identity/identity.module';
-import { PermissionsGuard } from './identity/authorization';
+import { AuthGuard } from './auth/authentication/auth.guard';
+import { AuthModule } from './auth/auth.module';
+import { PermissionsGuard } from './auth/authorization';
+import { UserModule } from './user/application/user.module';
 
 @Module({
   imports: [
     EventEmitterModule.forRoot(),
-    IdentityModule,
+    UserModule,
+    AuthModule,
     AuditLogModule,
     ThrottlerModule.forRoot({
       throttlers: [

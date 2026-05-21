@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import type { AuditAction, Prisma } from '@generated/prisma';
 import { AuditLogRepository } from './audit-log.repository';
-import { AUDIT_EVENT, AuditEvent } from '../shared/events/audit.event';
+import { AUDIT_EVENT, AuditEvent } from './events/audit.event';
 
 @Injectable()
 export class AuditLogService {
