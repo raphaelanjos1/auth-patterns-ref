@@ -49,6 +49,8 @@ src/
 
 Canonical wiring: [app.module.ts](../src/app.module.ts), [user.module.ts](../src/user/application/user.module.ts), [auth.module.ts](../src/auth/auth.module.ts).
 
+Why `authentication/` and `authorization/` are folders but not separate NestJS modules: [FEATURE-FOLDERS-GUIDELINES.md](./FEATURE-FOLDERS-GUIDELINES.md).
+
 ---
 
 ## Ports (infra boundaries)
@@ -178,16 +180,17 @@ References: [user.module.ts](../src/user/application/user.module.ts), [auth.modu
 
 ## Authorization
 
-RBAC lives in `src/auth/authorization/`. Consumers outside auth use `src/permissions-api/` (re-exports + `IPermissionChecker`).
+RBAC **contract** lives in `src/permissions-api/` (SSOT). **Implementation** (policy, ability, guard) lives in `src/auth/authorization/`. Consumers outside auth import only `permissions-api`.
 
 | Piece | File |
 |-------|------|
-| Actions / subjects | `action.enum.ts`, `subject.enum.ts` |
+| Actions / subjects | [action.enum.ts](../src/permissions-api/action.enum.ts), [subject.enum.ts](../src/permissions-api/subject.enum.ts) |
+| Decorator | [check-permissions.decorator.ts](../src/permissions-api/check-permissions.decorator.ts) |
+| Port | [permission-checker.port.ts](../src/permissions-api/permission-checker.port.ts) |
 | Policy matrix | [policy-map.ts](../src/auth/authorization/policy-map.ts) |
 | Ability | [ability-factory.ts](../src/auth/authorization/ability-factory.ts) |
-| Decorator | [check-permissions.decorator.ts](../src/auth/authorization/check-permissions.decorator.ts) |
 | Guard | [permissions.guard.ts](../src/auth/authorization/permissions.guard.ts) |
-| Facade | [permissions-api/index.ts](../src/permissions-api/index.ts) |
+| Facade barrel | [permissions-api/index.ts](../src/permissions-api/index.ts) |
 
 Details: [authorization.md](./authorization.md).
 

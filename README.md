@@ -101,8 +101,21 @@ The API will be available at `http://localhost:3000`.
 | `npm run build`      | Compile the project             |
 | `npm run test`       | Run unit tests                  |
 | `npm run test:e2e`   | E2E: smoke (`test/app.e2e-spec.ts`) + auth/user (`test/auth-user.e2e-spec.ts`, mocks) |
-| `npm run check:boundaries` | Validate cross-domain imports (fitness function) |
+| `npm run check:boundaries` | Validate cross-domain imports (`user`, `auth`, `permissions-api`) |
+| `npm run verify`     | Boundaries + unit tests + e2e (recommended before push) |
 | `npm run lint`       | Run the linter                  |
+
+### Before you push changes
+
+Run the local fitness gate (no GitHub Actions required in this repo yet):
+
+```bash
+npm run verify
+npm run build
+node scripts/check-domain-boundaries.mjs --self-test
+```
+
+Optional: `sh scripts/pre-push-check.sh` runs the same checks. To automate, copy that script into `.git/hooks/pre-push` manually.
 
 ## API Docs (Swagger)
 
@@ -114,6 +127,9 @@ A `swagger.json` file is also generated automatically at the project root when t
 
 Detailed documentation is available in the `docs/` folder:
 
+- [Architecture guidelines](docs/ARCHITECTURE-GUIDELINES.md) — module map and boundaries
+- [Feature folders](docs/FEATURE-FOLDERS-GUIDELINES.md) — layout inside bounded contexts
+- [Domain analysis (IAM)](docs/domain-analysis-user-auth.md) — strategic DDD view
 - [Coding patterns](docs/coding-patterns.md) — canonical guide for agents (active stack)
 - [JWT Authentication](docs/jwt-authentication.md)
 - [Security Measures](docs/security.md)

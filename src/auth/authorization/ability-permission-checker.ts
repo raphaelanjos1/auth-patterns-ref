@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { JwtPayload } from '../../shared/contracts';
 import type { IPermissionChecker } from '../../permissions-api/permission-checker.port';
-import type { PermissionRequirement } from './check-permissions.decorator';
+import type { PermissionRequirement } from '../../permissions-api';
 import { AbilityFactory } from './ability-factory';
 
 @Injectable()

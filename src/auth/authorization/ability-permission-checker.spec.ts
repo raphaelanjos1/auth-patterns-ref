@@ -1,7 +1,6 @@
 import { AbilityPermissionChecker } from './ability-permission-checker';
 import { AbilityFactory } from './ability-factory';
-import { Action } from './action.enum';
-import { Subject } from './subject.enum';
+import { Action, Subject } from '../../permissions-api';
 
 describe('AbilityPermissionChecker', () => {
   let checker: AbilityPermissionChecker;

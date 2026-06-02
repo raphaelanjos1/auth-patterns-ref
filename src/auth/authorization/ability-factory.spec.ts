@@ -1,7 +1,6 @@
 import type { UserRole } from '@generated/prisma';
 import { AbilityFactory } from './ability-factory';
-import { Action } from './action.enum';
-import { Subject } from './subject.enum';
+import { Action, Subject } from '../../permissions-api';
 
 describe('AbilityFactory', () => {
   let factory: AbilityFactory;

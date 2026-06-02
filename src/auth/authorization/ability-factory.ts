@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import type { UserRole } from '@generated/prisma';
-import { Action } from './action.enum';
+import { Action } from '../../permissions-api';
 import { POLICY_MAP } from './policy-map';
-import { Subject } from './subject.enum';
+import { Subject } from '../../permissions-api';
 
 export interface Ability {
   can(action: Action, subject: Subject): boolean;

@@ -1,333 +1,292 @@
-# Domain Analysis: `src/user` and `src/auth`
+# Análise de domínio — IAM (`user`, `auth`, `permissions-api`)
 
-Strategic DDD analysis of the User and Auth modules. Generated using the **domain-analysis** skill.
+**Data:** 2026-06-02  
+**Método:** [Domain Identification Agent](../.cursor/skills/rules/domain-identification-agent.mdc) + [DOMAIN-IDENTIFICATION-GUIDELINES.md](./DOMAIN-IDENTIFICATION-GUIDELINES.md)  
+**Escopo:** `src/user/`, `src/auth/`, `src/permissions-api/` (contexto: `audit-log`, `shared`, fitness function de boundaries)  
+**Tipo:** Design estratégico (problem space) — não prescreve refatoração imediata de pastas
 
-**Scope:** `src/user/`, `src/auth/` (including `authorization/`)
-
-**Date:** 2026-05-20
-
-**Shared Kernel (ownership):** [ADR — Prisma `User` table](./adr-shared-kernel-user.md)
-
----
-
-## Executive Summary
-
-Both modules belong to a single parent domain: **Identity & Access Management (IAM)**.
-
-| Subdomain | Module(s) | Type | Cohesion |
-|-----------|-----------|------|----------|
-| User Directory | `src/user` | Supporting | 9/10 |
-| Authentication | `src/auth` (sign-in, JWT, guard) | Generic | 7/10 |
-| Authorization | `src/auth/authorization` | Supporting | 8/10 |
-
-This repository is a **reference implementation** for auth patterns, not a product with a competitive business core. IAM is Supporting/Generic relative to a hypothetical product core elsewhere.
+**Documentos relacionados:** [ARCHITECTURE-GUIDELINES.md](./ARCHITECTURE-GUIDELINES.md), [FEATURE-FOLDERS-GUIDELINES.md](./FEATURE-FOLDERS-GUIDELINES.md), [coding-patterns.md](./coding-patterns.md), [authorization.md](./authorization.md)
 
 ---
 
-## Domain: Identity & Access
+## Resumo executivo
 
-**Type:** Supporting domain (Generic subdomains inside)
+| Aspecto | Conclusão |
+|--------|-----------|
+| **Domínios (problem space)** | **1** — Identity & Access Management (IAM) |
+| **Módulos analisados** | **3 bounded contexts na solution space**, não 3 domínios distintos |
+| `src/user/` | Subdomínio **User Directory** (Supporting) |
+| `src/auth/` | Subdomínios **Authentication** + **Authorization** (Generic) |
+| `src/permissions-api/` | **Fachada de integração** (Published Language), não subdomínio de negócio |
+| **Coesão geral IAM** | **Alta** — fronteiras e `yarn run check:boundaries` já existem |
+| **Prioridade arquitetural** | Consolidar fachada RBAC, endurecer boundaries, preparar extração — **sem** microserviços até gate de produto |
 
-**Ubiquitous Language:** User, Role, Credentials, Sign-in, Access Token, Permission, Action, Subject, Ability, Policy
+**Objetivo do repositório:** referência de padrões IAM (`auth-patterns-ref`), não um produto com core domain comercial. Neste codebase, o **IAM inteiro** funciona como o “core” do projeto.
 
-**Business Capability:** Manage accounts, authenticate sessions via JWT, and authorize operations by role.
+---
 
-### Architecture Overview
+## 1. Mapa de domínio
+
+### Domínio: Identity & Access Management (IAM)
+
+**Tipo (neste repo):** Core do projeto (referência de padrões)  
+**Coesão:** **8/10** ✅  
+**Linguagem ubíqua:** user, principal, sign-in, JWT, role, permission, action, subject, audit actor, policy
+
+**Conceitos extraídos do código:**
+
+| Conceito | Tipo | Módulo |
+|----------|------|--------|
+| `UserService`, `UserController` | Service / Controller | `user` |
+| `IUserDirectory`, `UserRepository` | Port / Adapter | `user` |
+| `IUserCredentialsReader`, `AuthRepository` | Port / Adapter | `user` (port) + `auth` (adapter) |
+| `AuthService`, `AuthController`, `AuthGuard` | Service / Controller / Guard | `auth/authentication` |
+| `AbilityFactory`, `POLICY_MAP`, `PermissionsGuard` | Service / Policy / Guard | `auth/authorization` |
+| `Action`, `Subject`, `CheckPermissions`, `IPermissionChecker` | API pública RBAC | `permissions-api` (+ implementação em `auth`) |
+
+### Subdomínios
+
+#### 1. User Directory (Supporting)
+
+- **Conceitos:** CRUD de usuário, paginação, hash na criação, auditoria `USER_*`
+- **Coesão:** **9/10** ✅
+- **Dependências:** → `permissions-api`; → `audit-log/events`; → `shared`
+- **Não faz:** sign-in, JWT, matriz de políticas
+
+#### 2. Authentication (Generic)
+
+- **Conceitos:** `signIn`, verificação de senha, emissão JWT, `AuthGuard`, `@Public()`
+- **Coesão:** **8/10** ✅
+- **Dependências:** → `user/domain/ports` (`IUserCredentialsReader`); → `shared`; → audit events
+- **Acoplamento intencional:** leitura de credenciais via port — acoplamento técnico baixo; conceitual aceitável (login precisa de usuário)
+
+#### 3. Authorization / Access Control (Generic)
+
+- **Conceitos:** RBAC, `POLICY_MAP`, `AbilityFactory`, `PermissionsGuard`
+- **Coesão:** **8/10** ✅
+- **Dependências:** política amarrada a `Subject.USER` (recurso do User Directory) — vínculo de negócio esperado
+
+#### 4. `permissions-api` — camada de integração (não subdomínio)
+
+- **Papel:** Open Host Service / fachada para consumidores (`user`) sem importar `auth/authorization/*`
+- **Coesão como “módulo de negócio”:** **5–6/10** ⚠️ — esperado para fachada
+- **Contrato:** SSOT em `permissions-api`; `auth/authorization` implementa ([adr-rbac-contract-ssot.md](./adr-rbac-contract-ssot.md))
 
 ```mermaid
 flowchart TB
-  subgraph IAM["Domain: Identity & Access"]
-    U["Subdomain: User Directory<br/>(Supporting)"]
-    A["Subdomain: Authentication<br/>(Generic)"]
-    Z["Subdomain: Authorization<br/>(Supporting)"]
+  subgraph IAM["Domínio IAM (problem space)"]
+    UD["User Directory<br/>src/user/"]
+    AUTHN["Authentication<br/>src/auth/authentication/"]
+    AUTHZ["Authorization<br/>src/auth/authorization/"]
+    PA["permissions-api<br/>fachada RBAC"]
   end
-  U -->|"UserRole, User.id"| Z
-  A -->|"JWT payload: sub, role"| Z
-  U -.->|"same User table"| A
-  U --> Audit
-  A --> Audit
-  Audit["Audit Log<br/>(external module)"]
+  UD --> PA
+  AUTHN --> UD
+  AUTHZ --> PA
+  AUTHN --> AUTHZ
 ```
 
 ---
 
-## Subdomain 1: User Directory
+## 2. Matriz de coesão (integração)
 
-**Location:** `src/user/`
+Fórmula de referência (guidelines): Linguistic (0–3) + Usage (0–3) + Data (0–2) + Change (0–2) → /10.
 
-**Type:** Supporting Subdomain
+| De | Para | Coesão | Tipo | Issue? |
+|----|------|--------|------|--------|
+| User Directory | Access Control | **6/10** | Interface (`permissions-api`) | ⚠️ OK tecnicamente |
+| Authentication | User Directory | **6/10** | Port (`user/domain/ports`) | ⚠️ OK por design (Shared Kernel) |
+| `permissions-api` | `auth/authorization` | **8/10** | Implementação importa contrato (pós-SSOT) | ✅ Resolvido |
+| User Directory | Authentication | — | Sem import direto (`check:boundaries`) | ✅ |
+| IAM (`user`, `auth`) | Audit | **7/10** | Eventos (`publishAudit`) | ✅ |
 
-**Ubiquitous Language:** User, fullName, email, password, role, create, update, delete, list, search
-
-**Business Capability:** Administrative lifecycle of user accounts (CRUD, email uniqueness, password hashing on create, audit trail).
-
-### Key Concepts
-
-| Concept | Kind | Description |
-|---------|------|-------------|
-| User | Entity (persisted) | Account with identity, credential hash, and role |
-| UserService | Application service | CRUD, email uniqueness, hashing on create, audit events |
-| UserRepository | Persistence adapter | Prisma access; omits `passwordHash` on reads |
-| UserController | HTTP entry point | REST `/user` with permission checks |
-
-### Business Operations
-
-- Create user (unique email, password hash, role assignment)
-- List users (pagination, search by name/email)
-- Update profile and role
-- Delete user
-- Emit audit events: `USER_CREATED`, `USER_UPDATED`, `USER_DELETED`
-
-### Suggested Bounded Context: `UserDirectoryContext`
-
-- **Linguistic boundary:** "User" = administrable record (profile, email, role, stored password hash).
-- **Integration:**
-  - Consumes **Authorization** via `@CheckPermissions` (Customer/Supplier).
-  - Uses **Hashing** from `shared/hashing` (Generic).
-  - Publishes audit events to **Audit Log** (event-based).
-
-### Dependencies
-
-- → `auth/authorization` — `Action`, `Subject`, `CheckPermissions`
-- → `shared/hashing` — `HashingService`
-- → `audit-log` — `AuditEvent` via `EventEmitter2`
-
-### Cohesion Score: 9/10
-
-| Criterion | Score | Notes |
-|-----------|-------|-------|
-| Linguistic cohesion | 3/3 | Single user-directory vocabulary |
-| Usage cohesion | 3/3 | CRUD and audit used together |
-| Data cohesion | 2/2 | Single `User` aggregate/table |
-| Change cohesion | 1/2 | Role changes also affect auth policies |
-| **Total** | **9/10** | High cohesion |
+**Fitness function:** [scripts/check-domain-boundaries.mjs](../scripts/check-domain-boundaries.mjs) — audita `src/user`, `src/auth` e `src/permissions-api` (proíbe `permissions-api → auth|user`).
 
 ---
 
-## Subdomain 2: Authentication
+## 3. Issues de baixa coesão
 
-**Location:** `src/auth/` (excluding `authorization/` for conceptual boundary)
+### Issue #1: Fachada RBAC depende da implementação — **RESOLVIDA** (2026-06-02)
 
-**Type:** Generic Subdomain
+| Campo | Valor |
+|-------|--------|
+| **ADR** | [adr-rbac-contract-ssot.md](./adr-rbac-contract-ssot.md) |
+| **Correção aplicada** | `Action`, `Subject`, `CheckPermissions`, `PermissionRequirement` em `src/permissions-api/`; `auth/authorization` importa da fachada; `check:boundaries` cobre `permissions-api`. |
 
-**Ubiquitous Language:** Sign-in, credentials, password validation, access token, Bearer, JWT payload (`sub`, `email`, `role`), public route
+### Issue #2: Dois adapters na mesma tabela `User`
 
-**Business Capability:** Verify credentials and issue JWT access tokens; validate tokens on protected routes.
+| Campo | Valor |
+|-------|--------|
+| **Local** | `UserRepository` vs `AuthRepository` |
+| **Tipo** | Data cohesion indireta (Shared Kernel) |
+| **Problema** | Dois caminhos Prisma para o mesmo agregado — proposital (`omit passwordHash` vs credenciais). |
+| **Coesão dados** | **1/10** entre módulos — **aceitável** com ADR de Shared Kernel |
+| **Prioridade** | **Baixa** |
 
-### Key Concepts
+### Issue #3: Port de credenciais no módulo `user`
 
-| Concept | Kind | Description |
-|---------|------|-------------|
-| AuthService | Application service | Validates credentials, signs JWT, emits `AUTH_LOGIN` audit |
-| AuthRepository | Persistence adapter | Loads user **with** `passwordHash` for sign-in |
-| AuthGuard | HTTP guard | Verifies Bearer token, attaches `request.user` |
-| SignInDto | Command DTO | email + password |
-| Public decorator | Infrastructure | Marks routes that skip authentication |
+| Campo | Valor |
+|-------|--------|
+| **Local** | `user/domain/ports/user-credentials-reader.port.ts` |
+| **Tipo** | Acoplamento conceitual (Rule 3) |
+| **Problema** | Linguisticamente “credentials” é Authentication; o port está em User por readiness de extração. |
+| **Coesão** | **6/10** — justificado |
+| **Alternativa (futuro)** | Port no lado auth com adapter em user, ou contrato em `shared/contracts` — só se extração exigir |
+| **Prioridade** | **Baixa** |
 
-### Suggested Bounded Context: `AuthenticationContext`
+### Issue #4: Assimetria física `user/application/` vs `auth/` flat
 
-- **Linguistic boundary:** "User" = authenticated principal (claims in token), not the administrative record.
-- **Integration:**
-  - Reads persisted identity (shared `User` table today).
-  - Downstream of persistence; upstream to **Authorization** via JWT `role`.
-
-### Dependencies
-
-- → Prisma `User` table (shared with User Directory)
-- → `shared/hashing` — password verification
-- → `@nestjs/jwt` — token sign/verify
-- → `audit-log` — `AUTH_LOGIN`
-
-### Cohesion Score: 7/10
-
-| Criterion | Score | Notes |
-|-----------|-------|-------|
-| Linguistic cohesion | 3/3 | Clear authentication vocabulary |
-| Usage cohesion | 2/3 | Sign-in cohesive; guard is cross-cutting |
-| Data cohesion | 1/2 | Same `User` entity as User Directory |
-| Change cohesion | 1/2 | JWT strategy changes affect whole app |
-| **Total** | **7/10** | Medium-high |
+| Campo | Valor |
+|-------|--------|
+| **Tipo** | Boundaries estruturais (não de domínio) |
+| **Prioridade** | **Baixa** — cosmético |
 
 ---
 
-## Subdomain 3: Authorization
+## 4. O que está bem (não reabrir)
 
-**Location:** `src/auth/authorization/`
-
-**Type:** Supporting Subdomain (policy rules are application-specific)
-
-**Ubiquitous Language:** Permission, Action, Subject, Ability, Policy, Role (ADMIN, MANAGER, USER)
-
-**Business Capability:** Enforce role-based access control (RBAC) on HTTP handlers.
-
-### Key Concepts
-
-| Concept | Kind | Description |
-|---------|------|-------------|
-| POLICY_MAP | Business policy | Role → list of action/subject permissions |
-| AbilityFactory | Domain service | Builds `Ability` for a given `UserRole` |
-| PermissionsGuard | HTTP guard | Enforces `@CheckPermissions` metadata |
-| CheckPermissions | Decorator | Declares required action/subject on handler |
-| Action / Subject enums | Ubiquitous language | CRUD actions on `User` subject |
-
-### Policy Map (current)
-
-| Role | Permissions |
-|------|-------------|
-| ADMIN | CREATE, READ, UPDATE, DELETE on USER |
-| MANAGER | CREATE, READ, UPDATE on USER |
-| USER | READ on USER |
-
-### Suggested Bounded Context: `AuthorizationContext`
-
-- **Linguistic boundary:** "Can perform action X on subject Y" — independent of how identity was proven.
-- **Integration:** Consumes `role` from JWT payload (Authentication); consumed by User Controller and other protected routes.
-
-### Dependencies
-
-- → `UserRole` from Prisma/generated types
-- → JWT payload on `request.user` (set by AuthGuard)
-
-### Cohesion Score: 8/10
-
-| Criterion | Score | Notes |
-|-----------|-------|-------|
-| Linguistic cohesion | 3/3 | Consistent RBAC/CASL-like vocabulary |
-| Usage cohesion | 3/3 | Factory, guard, decorator, policy used together |
-| Data cohesion | 1/2 | Tied to `UserRole` in persistence model |
-| Change cohesion | 1/2 | New subjects/actions require policy + controllers |
-| **Total** | **8/10** | High cohesion |
+- **Não recriar `src/identity/`** — stack paralelo rico deprecado; ver [§ 8](#8-decisão-sobre-srcidentity).
+- **Audit por eventos** — IAM não acopla a `AuditLogService`.
+- **Guards globais** em `AppModule` — pipeline Auth → Permissions coerente.
+- **Projeções separadas** — `IUserDirectory` sem `passwordHash`; credenciais só no reader.
+- **`yarn run check:boundaries`** para `user` e `auth`.
 
 ---
 
-## Cross-Domain Cohesion Matrix
+## 5. Próximos passos de arquitetura
 
-| Domain A | Domain B | Cohesion | Issue | Recommendation |
-|----------|----------|----------|-------|----------------|
-| User Directory | Authentication | 7/10 | Same `User` table/entity | Acceptable in monolith; use ports/IDs if splitting services |
-| User Directory | Authorization | 6/10 | User module imports auth decorators | Customer/Supplier OK; consider `IPermissionChecker` interface |
-| Authentication | Authorization | 8/10 | Same Nest module `auth/` | Cohesive at runtime; split folders/modules if growing |
-| IAM | Audit Log | 4/10 | Cross-cutting audit events | Keep event-based integration; avoid direct service coupling |
+### Fase A — Consolidar fronteiras — **concluída** (2026-06-02)
 
----
+1. ~~Inverter dependência da fachada RBAC~~ — feito ([adr-rbac-contract-ssot.md](./adr-rbac-contract-ssot.md)).
+2. ~~Estender `check-domain-boundaries.mjs` para `permissions-api`~~ — feito.
+3. **Gate local** — `npm run verify` + README; CI remoto opcional no futuro.
+4. **Não adicionar tactical DDD pesado** sem invariantes reais (lockout, política de senha, estados de conta).
 
-## Suggested Bounded Contexts
+### Fase B — Readiness para novos bounded contexts (médio prazo)
 
-### Option A — Current monolith (recommended for this repo)
+5. **Primeiro módulo fora IAM (ex.: billing)** — checklist em [coding-patterns.md](./coding-patterns.md#new-module-checklist).
+6. **Completar ADRs / docs de extração** referenciados em [ARCHITECTURE-GUIDELINES.md](./ARCHITECTURE-GUIDELINES.md).
+7. **Shared Kernel explícito** — User Directory **dono** de migrations/modelo `User`; Authentication só leitura via port até API separada.
 
-**`IdentityAccessContext`** containing all three subdomains.
+### Fase C — Extração (somente com gate de produto)
 
-- Single deploy, single Prisma schema
-- Matches project goal (NestJS auth patterns reference)
+8. **Não extrair microserviços agora** — fase 3 = readiness only ([extraction-feasibility-gate.md](./extraction-feasibility-gate.md)).
+9. **Ordem natural de extração (quando liberado):** Audit → Access Control → User Directory, com `permissions-api` estável como contrato entre serviços.
 
-### Option B — Linguistic split (future evolution)
+### Fase D — Evolução funcional
 
-| Context | Subdomains | Integration pattern |
-|---------|------------|---------------------|
-| **UserDirectoryContext** | User Directory | Publishes `UserId`, `UserRole`; never exposes `passwordHash` externally |
-| **AccessControlContext** | Authentication + Authorization | Consumes identity claims; ACL if integrating external user store |
+10. **Novos subjects/actions** — estender `Subject` / `POLICY_MAP` / decorators; evitar `if (role)` nos services.
+11. **Invariantes de domínio** — então considerar `user/domain/*.entity.ts` e testes sem Nest (skill `tactical-ddd`).
 
-**Integration patterns:**
+### Decisão prática imediata
 
-| Relationship | Pattern |
-|--------------|---------|
-| User Directory → Authorization | Customer/Supplier (downstream consumes permission API) |
-| Authentication → Authorization | Shared Kernel minimal (`JwtPayload`: sub, email, role) |
-| User Directory ↔ Authentication | Shared Kernel today (`User` table) — risk if moving to microservices |
+> ~~Tornar `permissions-api` o SSOT~~ — **implementado.** Próximo foco: Fase B (template de novo bounded context, ADRs de extração) sem microserviços até gate G5.
 
 ---
 
-## Issues Detected
+## 6. Relação com `MODULAR-ARCHITECTURE-GUIDELINES.md`
 
-### Priority: Medium
+Para **este** repositório IAM:
 
-**Issue:** Authentication and Authorization in the same Nest module (`auth/`)
+| Camada | Mapeamento |
+|--------|------------|
+| **Problem space** | 1 domínio IAM, 3 subdomínios (+ audit transversal) |
+| **Solution space** | Módulos Nest atuais mapeiam 1:1 com subdomínios, exceto `permissions-api` (integração) |
+| **Stance** | [clean-arch-lite](../.cursor/skills/clean-arch-lite/SKILL.md) — ports + services + repositories |
 
-- **Location:** `src/auth/` vs `src/auth/authorization/`
-- **Problem:** Two vocabularies (credentials/token vs action/subject/ability) in one package; linguistic boundary not explicit in structure.
-- **Cohesion of package `auth`:** ~6/10 (medium)
-- **Recommendation:** Treat as two subdomains; split into `authentication/` and `authorization/` folders or separate Nest modules when the codebase grows.
-
-### Priority: Medium
-
-**Issue:** Duplicate access to `User` (UserRepository vs AuthRepository)
-
-- **Location:** `user.repository.ts`, `auth.repository.ts`
-- **Problem:** Shared persistence without a shared domain port; Auth needs password hash, User omits it on reads.
-- **Recommendation:** Introduce ports such as `IUserDirectory` and `IUserCredentialsReader`; in microservices, do not share ORM models.
-
-### Priority: Low
-
-**Issue:** `UserRole` spread across DTO, Prisma, JWT, and POLICY_MAP
-
-- **Problem:** Stable term but multiple definitions (including duplicate enum in `create-user.dto.ts`).
-- **Recommendation:** Single source of truth (`@generated/prisma` or domain `Role` value object).
-
-### Priority: Low
-
-**Issue:** Password hashing in `UserService.create`
-
-- **Problem:** Mixes account management with generic hashing (acceptable here).
-- **Recommendation:** Keep hashing in `shared/`; do not move sign-in logic into `user` module.
+Use [MODULAR-ARCHITECTURE-GUIDELINES.md](./MODULAR-ARCHITECTURE-GUIDELINES.md) ao adicionar **novos** domínios (billing, catalog), não para reestruturar IAM sem necessidade.
 
 ---
 
-## Subdomain Classification Decision Tree
+## 7. Summary (formato agent)
 
-```
-Identity & Access (parent domain)
-├─ User Directory      → Supporting (account management)
-├─ Authentication      → Generic (JWT, login, guards)
-└─ Authorization       → Supporting (POLICY_MAP is app-specific)
-```
+**Domains Identified:** 1
 
-**Core domain in this repository:** None in the classic sense — the "core" is demonstrating **auth patterns** (technical meta-capability). In a commercial product, Core would live elsewhere (e.g. orders, billing); IAM would remain Supporting/Generic.
+- IAM (Core deste repo) — Cohesion: **8/10** ✅
 
----
+**Subdomains Identified:** 3 (+ 1 fachada)
 
-## Analysis Checklist
+- User Directory (Supporting) — **9/10** ✅
+- Authentication (Generic) — **8/10** ✅
+- Authorization (Generic) — **8/10** ✅
+- `permissions-api` (integração) — **5–6/10** ⚠️
 
-### Per subdomain
+**Cohesion Issues:** 3 open (+ 1 resolved)
 
-- [x] Business language identified
-- [x] Domain and subdomain assigned
-- [x] Core / Supporting / Generic classified
-- [x] Related concepts listed
-- [x] Cross-module dependencies mapped
-- [x] Linguistic mismatches flagged
+- ~~1 High Priority (fachada RBAC invertida)~~ **Resolvida**
+- 2 Medium/Low (Shared Kernel, port placement)
+- 1 Low (assimetria de pastas)
 
-### Per domain (IAM)
+**Overall Assessment:**
 
-- [x] Ubiquitous Language defined
-- [x] Key concepts listed
-- [x] Subdomains identified (3)
-- [x] Core domain assessed (none — reference project)
-- [x] Cross-domain dependencies mapped
-- [x] Internal cohesion scored
-- [x] Boundaries and recommendations documented
+- ✅ Subdivisão `user` / `auth` / `permissions-api` alinhada a DDD estratégico e extração futura
+- ✅ Boundaries enforcement e audit desacoplado
+- ✅ `permissions-api` é SSOT do contrato RBAC
+- ❌ Não reunificar em `src/identity/` sem gatilhos de produto (ver § 8)
 
 ---
 
-## Source References
+## 8. Decisão sobre `src/identity/`
 
-| File | Role in analysis |
-|------|------------------|
-| `src/user/user.service.ts` | User lifecycle, audit, hashing on create |
-| `src/user/user.controller.ts` | REST API + `@CheckPermissions` |
-| `src/user/user.repository.ts` | Persistence (omits password hash) |
-| `src/auth/auth.service.ts` | Sign-in, JWT issuance |
-| `src/auth/auth.repository.ts` | Credential lookup with password |
-| `src/auth/auth.guard.ts` | JWT validation |
-| `src/auth/authorization/policy-map.ts` | RBAC rules |
-| `src/auth/authorization/permissions.guard.ts` | Permission enforcement |
-| `prisma/schema.prisma` | `User`, `UserRole`, `AuditAction` |
-| `src/app.module.ts` | Global `AuthGuard` + `PermissionsGuard` |
+### Pergunta
+
+Devemos reconsiderar recriar `src/identity/` (stack rico com entities, VOs, `infrastructure/`)?
+
+### Resposta: **Não** (manter decisão atual)
+
+A análise estratégica **não** indica falta de um módulo “Identity”. Indica **um domínio IAM** com subdomínios já separados na solution space. Recriar `src/identity/` como implementação paralela traria:
+
+- Dois modelos mentais para quem clona o repo
+- Fronteira dupla (oposto ao `check:boundaries`)
+- Custo sem ganho de coesão (gap real é a fachada RBAC)
+
+### Quando reconsiderar (gatilhos explícitos)
+
+Reabrir via ADR novo apenas se **pelo menos um** for verdadeiro:
+
+1. **Invariantes de domínio reais** — lockout, política de senha, verificação de e-mail, estados de conta.
+2. **Objetivo pedagógico** — repo passa a ser referência de tactical DDD, não só Nest/JWT/RBAC.
+3. **Extração iminente como único “Identity Service”** — um deploy; pacote agregador sem duplicar `user` + `auth`.
+4. **Dor de navegação** — agrupador cosmético (`IamModule` ou doc) **sem** mover código nem duplicar stack.
+
+### Alternativas preferíveis a recriar `identity/`
+
+| Motivação | Alternativa |
+|-----------|-------------|
+| Camadas limpas | Ports + adapters (já existem) |
+| Auth e User misturados | `user` + `auth` + fitness function (já existem) |
+| Um lugar para IAM | Problem space = IAM; solution = módulos separados (correto para extração) |
+| DDD “de verdade” | Entidades pontuais em `user/domain/` quando houver regras |
+| Contrato RBAC estável | SSOT em `permissions-api` (Fase A) |
+| Agrupamento Nest | `IamModule` que importa `UserModule` + `AuthModule` (opcional, sem duplicação) |
+
+### Risco de reconsiderar sem gatilho
+
+Referência confusa, mais arquivos, testes duplicados, boundaries mais frágeis.
+
+**Referência histórica:** [identity-stack-decision.md](./identity-stack-decision.md), [coding-patterns.md](./coding-patterns.md) (nota sobre `src/identity/` deprecado).
 
 ---
 
-## Related Documentation
+## 9. Checklist de validação (Domain Identification Agent)
 
-- [Authorization](./authorization.md)
-- [JWT Authentication](./jwt-authentication.md)
-- [Audit Log](./audit-log.md)
-- [Security](./security.md)
+- [x] Guidelines de [DOMAIN-IDENTIFICATION-GUIDELINES.md](./DOMAIN-IDENTIFICATION-GUIDELINES.md) seguidas
+- [x] Processo: conceitos → linguagem → domínio → subdomínios → coesão → integração → issues
+- [x] Coesão pontuada por grupo
+- [x] Regras 1–6 de baixa coesão aplicadas
+- [x] Recomendações acionáveis e priorizadas
+- [x] Distinção problem space vs solution space
+- [x] Posição sobre `src/identity/` documentada
+
+---
+
+## 10. Referências de código
+
+| Artefato | Caminho |
+|----------|---------|
+| User module | `src/user/application/user.module.ts` |
+| Auth module | `src/auth/auth.module.ts` |
+| App wiring | `src/app.module.ts` |
+| Boundaries script | `scripts/check-domain-boundaries.mjs` |
+| Permissions facade | `src/permissions-api/index.ts` |
+| Policy map | `src/auth/authorization/policy-map.ts` |

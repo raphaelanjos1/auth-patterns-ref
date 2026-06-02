@@ -12,6 +12,7 @@ Entry guide for LLMs and maintainers: **what exists**, **how modules relate**, a
 |-------|----------|--------------|
 | 1 | [coding-patterns.md](./coding-patterns.md) | Before any change under `src/` |
 | 2 | This file | Architectural view and module boundaries |
+| 2b | [FEATURE-FOLDERS-GUIDELINES.md](./FEATURE-FOLDERS-GUIDELINES.md) | Organizing code *inside* `src/user`, `src/auth`, etc. |
 | 3 | [CONTEXT.md](./CONTEXT.md) | Terminology (User vs principal, audit actor, etc.) |
 | 4 | Topic-specific | JWT → [jwt-authentication.md](./jwt-authentication.md); RBAC → [authorization.md](./authorization.md); audit → [audit-log.md](./audit-log.md); security → [security.md](./security.md) |
 | 5 | Brownfield / spec | [.specs/codebase/ARCHITECTURE.md](../.specs/codebase/ARCHITECTURE.md), [modular-monolith-iam spec](../.specs/features/modular-monolith-iam/spec.md) |
@@ -58,11 +59,11 @@ flowchart TB
 | `src/user/` | User Directory | User CRUD, hash on create, USER_* audit | Sign-in, issue JWT, define policy |
 | `src/auth/authentication/` | Authentication | Sign-in, JWT, `AuthGuard`, `@Public()` routes | User CRUD, RBAC policy |
 | `src/auth/authorization/` | Authorization | Policy map, `AbilityFactory`, permission guards | Persist User |
-| `src/permissions-api/` | Facade | Re-export Action/Subject/`@CheckPermissions`; `IPermissionChecker` | Ability implementation (stays in auth) |
+| `src/permissions-api/` | Facade (SSOT) | `Action`, `Subject`, `@CheckPermissions`, `PermissionRequirement`, `IPermissionChecker` | Policy/ability/guards (stay in `auth/authorization`) |
 | `src/audit-log/` | Audit | v1 contract, listener, persistence | Be imported by IAM except `events/` |
 | `src/shared/` | Shared infra | Prisma, Argon2, `JwtPayload` SSOT, Swagger | IAM business rules |
 
-**Ownership (Shared Kernel):** User Directory **owns** the `User` model (migrations, create/update/delete). Authentication uses **credentials projection** via port — see [adr-shared-kernel-user.md](./adr-shared-kernel-user.md).
+**Ownership (Shared Kernel):** User Directory **owns** the `User` model (migrations, create/update/delete). Authentication uses **credentials projection** via `IUserCredentialsReader` in `user/domain/ports/` (implemented by `AuthRepository`) — see [adr-shared-kernel-user.md](./adr-shared-kernel-user.md).
 
 ---
 
@@ -81,14 +82,15 @@ src/
 ├── audit-log/
 │   ├── events/          # publishAudit, AUDIT_EVENT — only IAM→audit surface
 │   └── contracts/       # schema v1
-├── permissions-api/     # non-auth consumers import from here
+├── permissions-api/     # RBAC contract SSOT (enums, decorator, IPermissionChecker)
 └── shared/
     ├── database/
     ├── hashing/
     └── contracts/       # JwtPayload
 ```
 
-Pattern details (ports, DI, tests): [coding-patterns.md](./coding-patterns.md).
+Pattern details (ports, DI, tests): [coding-patterns.md](./coding-patterns.md).  
+Internal layout (feature folders vs layers): [FEATURE-FOLDERS-GUIDELINES.md](./FEATURE-FOLDERS-GUIDELINES.md).
 
 ---
 
@@ -102,6 +104,8 @@ Enforced by `yarn run check:boundaries` ([scripts/check-domain-boundaries.mjs](.
 | `user`, `auth` | `shared` | `database`, `hashing`, `swagger`, `contracts` |
 | `user` | `auth` | Only `src/permissions-api` (not `auth/authorization/*`) |
 | `auth` | `user` | Only `src/user/domain/ports` |
+| `permissions-api` | `auth`, `user` | **Forbidden** (facade must not import implementation) |
+| `permissions-api` | `shared` | Only `src/shared/contracts` (e.g. `JwtPayload` on port) |
 | Any IAM | `audit-log` service/repo/module | **Forbidden** |
 
 **Implications for agents:**
@@ -142,7 +146,7 @@ Diagrams and permission matrix: [authorization.md](./authorization.md), [jwt-aut
 |----------|-----------|-----|
 | Deprecate `src/identity/` | Single stack; no dual boundary | [identity-stack-decision.md](./identity-stack-decision.md) |
 | Event-based audit | IAM not coupled to audit persistence | [audit-log.md](./audit-log.md), [adr-audit-service-extraction.md](./adr-audit-service-extraction.md) |
-| `permissions-api` | RBAC consumable without importing `auth/authorization/` | [authorization.md](./authorization.md) |
+| `permissions-api` SSOT | RBAC contract defined in facade; `auth/authorization` implements | [adr-rbac-contract-ssot.md](./adr-rbac-contract-ssot.md), [authorization.md](./authorization.md) |
 | Ports in `user/domain/ports` | Prepare User Directory vs Access Control extraction | [adr-access-control-service-extraction.md](./adr-access-control-service-extraction.md) |
 | `UserRole` / `AuditAction` SSOT | `@generated/prisma` — no duplicate enums in DTOs | [coding-patterns.md](./coding-patterns.md) |
 | Phase 3 = readiness only | No microservices until product gate (G5) | [extraction-feasibility-gate.md](./extraction-feasibility-gate.md) |
@@ -167,7 +171,7 @@ Explicit anti-bloat: [coding-patterns.md](./coding-patterns.md#anti-bloat-rules)
 
 Copy the full list from [coding-patterns.md](./coding-patterns.md#new-module-checklist). Minimum:
 
-- [ ] `yarn run check:boundaries`
+- [ ] `npm run verify` or `yarn run check:boundaries` (+ tests) before sharing code
 - [ ] Audit via `publishAudit` only
 - [ ] RBAC via `permissions-api` when outside `auth`
 - [ ] `yarn test` + `yarn test:e2e` green
@@ -179,14 +183,17 @@ Copy the full list from [coding-patterns.md](./coding-patterns.md#new-module-che
 | Topic | File |
 |-------|------|
 | Code patterns | [coding-patterns.md](./coding-patterns.md) |
+| Feature folders (inside a module) | [FEATURE-FOLDERS-GUIDELINES.md](./FEATURE-FOLDERS-GUIDELINES.md) |
 | IAM domain (DDD) | [domain-analysis-user-auth.md](./domain-analysis-user-auth.md) |
 | Component grouping | [domain-identification-grouping-user-auth.md](./domain-identification-grouping-user-auth.md) |
 | Inventory / sizing | [component-inventory.md](./component-inventory.md) |
 | Coupling | [coupling-analysis-user-auth.md](./coupling-analysis-user-auth.md) |
 | Decomposition roadmap | [decomposition-planning-roadmap-user-auth.md](./decomposition-planning-roadmap-user-auth.md) |
 | Shared Kernel User | [adr-shared-kernel-user.md](./adr-shared-kernel-user.md) |
+| RBAC contract SSOT | [adr-rbac-contract-ssot.md](./adr-rbac-contract-ssot.md) |
 | Access Control extraction | [adr-access-control-service-extraction.md](./adr-access-control-service-extraction.md) |
 | Audit extraction | [adr-audit-service-extraction.md](./adr-audit-service-extraction.md) |
+| Extraction gate | [extraction-feasibility-gate.md](./extraction-feasibility-gate.md) |
 | Prisma | [prisma-migrations.md](./prisma-migrations.md) |
 | Code conventions | [.specs/codebase/CONVENTIONS.md](../.specs/codebase/CONVENTIONS.md) |
 | Testing | [.specs/codebase/TESTING.md](../.specs/codebase/TESTING.md) |
@@ -197,11 +204,23 @@ Copy the full list from [coding-patterns.md](./coding-patterns.md#new-module-che
 
 | Command | Use |
 |---------|-----|
-| `yarn build` | Compile |
-| `yarn test` | Unit/integration |
-| `yarn test:e2e` | E2E (`test/auth-user.e2e-spec.ts`) |
+| `npm run verify` | **Recommended before push:** boundaries + unit + e2e |
+| `yarn build` / `npm run build` | Compile |
+| `yarn test` / `npm test` | Unit/integration |
+| `yarn test:e2e` / `npm run test:e2e` | E2E (`test/auth-user.e2e-spec.ts`) |
 | `yarn lint` | ESLint |
-| `yarn run check:boundaries` | Cross-domain import limits |
+| `yarn run check:boundaries` | Cross-domain import limits (`user`, `auth`, `permissions-api`) |
+| `node scripts/check-domain-boundaries.mjs --self-test` | Sanity-check the boundary script |
 | `yarn prisma migrate dev --name <n>` | Migration (never hand-written SQL) |
 
-See also [AGENTS.md](../AGENTS.md).
+### Before you share code (no remote CI yet)
+
+Run locally (or `sh scripts/pre-push-check.sh` for verify + build + self-test):
+
+```bash
+npm run verify
+npm run build
+node scripts/check-domain-boundaries.mjs --self-test
+```
+
+Optional: copy `scripts/pre-push-check.sh` into `.git/hooks/pre-push` (manual, not committed). Remote GitHub Actions for boundaries are a future improvement — not required for this reference repo today.

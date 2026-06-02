@@ -11,7 +11,7 @@ import { AbilityPermissionChecker } from './ability-permission-checker';
 import {
   PERMISSIONS_KEY,
   type PermissionRequirement,
-} from './check-permissions.decorator';
+} from '../../permissions-api';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {

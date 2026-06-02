@@ -1,7 +1,7 @@
 /**
  * Domain boundary fitness function (IAM-12, IAM-13).
  *
- * Scans src/user/** and src/auth/** (.ts, including specs) for cross-domain imports.
+ * Scans src/user/**, src/auth/**, and src/permissions-api/** (.ts, including specs).
  *
  * Allowlist:
  * - IAM → Audit: only paths under src/audit-log/events (e.g. publish-audit, audit.event, audit-actions)
@@ -9,13 +9,15 @@
  * - user → permissions-api: only src/permissions-api (published RBAC facade; not src/auth/*)
  * - auth → permissions-api: only src/permissions-api (IPermissionChecker port; implementation stays in auth)
  * - auth → user: only src/user/domain/ports (persistence port interfaces; not application/, dto/, etc.)
- * - Within-domain: imports resolving under the same src/user or src/auth tree are allowed
+ * - permissions-api → shared: only src/shared/contracts (and subpaths; JwtPayload on port)
+ * - Within-domain: imports resolving under the same tree are allowed
  * - External packages and @generated/* are not checked
  *
  * Forbidden examples:
+ * - permissions-api importing ../auth/authorization/action.enum
  * - ../audit-log/audit-log.service, audit-log.module, audit-log.repository
  * - any audit-log import outside events/
- * - ../shared/<anything-other-than-database|hashing|swagger>
+ * - ../shared/<anything-other-than-database|hashing|swagger|contracts>
  * - user importing ../auth/authentication/...
  *
  * Usage:
@@ -32,12 +34,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 
 const IAM_ROOTS = ['src/user', 'src/auth'];
+const FACADE_ROOTS = ['src/permissions-api'];
+const SCAN_ROOTS = [...IAM_ROOTS, ...FACADE_ROOTS];
 const SHARED_ALLOW = [
   'src/shared/database',
   'src/shared/hashing',
   'src/shared/swagger',
   'src/shared/contracts',
 ];
+const PERMISSIONS_API_SHARED_ALLOW = ['src/shared/contracts'];
 const AUDIT_EVENTS_PREFIX = 'src/audit-log/events';
 const PERMISSIONS_API_PREFIX = 'src/permissions-api';
 const USER_PORTS_PREFIX = 'src/user/domain/ports';
@@ -46,8 +51,11 @@ const IMPORT_FROM_RE =
   /(?:import|export)\s+(?:type\s+)?(?:\{[^}]*\}|\*\s+as\s+\w+|\w+)\s+from\s+['"]([^'"]+)['"]/g;
 const IMPORT_SIDE_EFFECT_RE = /^import\s+['"]([^'"]+)['"]/gm;
 
-/** Built-in violation used by --self-test (must be detected). */
-const SELF_TEST_BAD_IMPORT = "import { AuditLogService } from '../audit-log/audit-log.service';";
+/** Built-in violations used by --self-test (must be detected). */
+const SELF_TEST_IAM_BAD_IMPORT =
+  "import { AuditLogService } from '../audit-log/audit-log.service';";
+const SELF_TEST_FACADE_BAD_IMPORT =
+  "import { Action } from '../auth/authorization/action.enum';";
 
 function listTsFiles(dir) {
   const files = [];
@@ -92,9 +100,13 @@ function isExternalSpecifier(specifier) {
   return !specifier.startsWith('.');
 }
 
+function isSameTree(importerRel, targetRel, prefix) {
+  return importerRel.startsWith(`${prefix}/`) && targetRel.startsWith(`${prefix}/`);
+}
+
 function isSameIamTree(importerRel, targetRel) {
-  if (importerRel.startsWith('src/user/') && targetRel.startsWith('src/user/')) return true;
-  if (importerRel.startsWith('src/auth/') && targetRel.startsWith('src/auth/')) return true;
+  if (isSameTree(importerRel, targetRel, 'src/user')) return true;
+  if (isSameTree(importerRel, targetRel, 'src/auth')) return true;
   return false;
 }
 
@@ -102,12 +114,46 @@ function isUnderPrefix(targetRel, prefix) {
   return targetRel === prefix || targetRel.startsWith(`${prefix}/`);
 }
 
-function isAllowedShared(targetRel) {
-  return SHARED_ALLOW.some((p) => isUnderPrefix(targetRel, p));
+function isAllowedShared(targetRel, allowList = SHARED_ALLOW) {
+  return allowList.some((p) => isUnderPrefix(targetRel, p));
+}
+
+function checkPermissionsApiImport(importerRel, targetRel) {
+  if (isSameTree(importerRel, targetRel, 'src/permissions-api')) return null;
+
+  if (targetRel.startsWith('src/auth/') || targetRel.startsWith('src/user/')) {
+    return {
+      rule: 'permissions-api→IAM',
+      message: `facade must not import implementation domains (got "${targetRel}")`,
+    };
+  }
+
+  if (targetRel.startsWith('src/shared/')) {
+    if (!isAllowedShared(targetRel, PERMISSIONS_API_SHARED_ALLOW)) {
+      return {
+        rule: 'permissions-api→Shared',
+        message: `only ${PERMISSIONS_API_SHARED_ALLOW.join(', ')} are allowed (got "${targetRel}")`,
+      };
+    }
+    return null;
+  }
+
+  if (targetRel.startsWith('src/')) {
+    return {
+      rule: 'permissions-api cross-domain',
+      message: `import from "${targetRel}" is not in the allowlist`,
+    };
+  }
+
+  return null;
 }
 
 function checkResolvedImport(importerRel, specifier, targetRel) {
   if (!targetRel.startsWith('src/')) return null;
+
+  if (importerRel.startsWith('src/permissions-api/')) {
+    return checkPermissionsApiImport(importerRel, targetRel);
+  }
 
   if (isSameIamTree(importerRel, targetRel)) return null;
 
@@ -156,6 +202,12 @@ function checkResolvedImport(importerRel, specifier, targetRel) {
     return null;
   }
 
+  if (importerRel.startsWith('src/user/') || importerRel.startsWith('src/auth/')) {
+    if (isUnderPrefix(targetRel, PERMISSIONS_API_PREFIX)) {
+      return null;
+    }
+  }
+
   return {
     rule: 'IAM cross-domain',
     message: `import from "${targetRel}" is not in the allowlist`,
@@ -183,9 +235,9 @@ function violationsForFile(importerRel, content) {
   return violations;
 }
 
-function scanIamTree() {
+function scanDomainTrees() {
   const violations = [];
-  for (const root of IAM_ROOTS) {
+  for (const root of SCAN_ROOTS) {
     const absRoot = path.join(ROOT, root);
     for (const absFile of listTsFiles(absRoot)) {
       const rel = relFromRoot(absFile);
@@ -201,15 +253,25 @@ function formatViolation(v) {
 }
 
 function runSelfTest() {
-  const fakeFile = 'src/user/__self-test__.ts';
-  const found = violationsForFile(fakeFile, SELF_TEST_BAD_IMPORT);
-  if (found.length === 0) {
-    console.error('Self-test FAILED: built-in bad import was not detected.');
-    console.error(`  Pattern: ${SELF_TEST_BAD_IMPORT.trim()}`);
+  const iamFakeFile = 'src/user/__self-test__.ts';
+  const iamFound = violationsForFile(iamFakeFile, SELF_TEST_IAM_BAD_IMPORT);
+  if (iamFound.length === 0) {
+    console.error('Self-test FAILED: IAM built-in bad import was not detected.');
+    console.error(`  Pattern: ${SELF_TEST_IAM_BAD_IMPORT.trim()}`);
     process.exit(1);
   }
-  console.log('Self-test OK: detector caught built-in violation:');
-  console.log(formatViolation(found[0]));
+
+  const facadeFakeFile = 'src/permissions-api/__self-test__.ts';
+  const facadeFound = violationsForFile(facadeFakeFile, SELF_TEST_FACADE_BAD_IMPORT);
+  if (facadeFound.length === 0) {
+    console.error('Self-test FAILED: permissions-api built-in bad import was not detected.');
+    console.error(`  Pattern: ${SELF_TEST_FACADE_BAD_IMPORT.trim()}`);
+    process.exit(1);
+  }
+
+  console.log('Self-test OK: detector caught built-in violations:');
+  console.log(formatViolation(iamFound[0]));
+  console.log(formatViolation(facadeFound[0]));
   process.exit(0);
 }
 
@@ -219,9 +281,9 @@ function main() {
     return;
   }
 
-  const violations = scanIamTree();
+  const violations = scanDomainTrees();
   if (violations.length === 0) {
-    console.log('Domain boundary check passed (src/user, src/auth).');
+    console.log('Domain boundary check passed (src/user, src/auth, src/permissions-api).');
     process.exit(0);
   }
 

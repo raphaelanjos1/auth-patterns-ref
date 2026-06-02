@@ -97,41 +97,28 @@ Routes **without** `@CheckPermissions` are accessible to any authenticated user
 
 ### Permissions API facade (`permissions-api/`)
 
+The **public RBAC contract** is **defined** in `src/permissions-api/` (not re-exported from `auth`). Implementation (`POLICY_MAP`, `AbilityFactory`, `PermissionsGuard`) stays in `src/auth/authorization/` and imports enums/decorator from the facade.
+
 Modules outside `auth` must not import `src/auth/authorization/*` directly. Import from `src/permissions-api/` instead — enforced by `yarn run check:boundaries`.
 
 | Export | Purpose |
 |--------|---------|
-| `Action`, `Subject`, `CheckPermissions` | Same as authorization barrel |
+| `Action`, `Subject`, `CheckPermissions`, `PermissionRequirement` | Contract SSOT |
 | `IPermissionChecker` | Port for guard implementations (`AbilityPermissionChecker` in auth) |
 
-Reference: [permissions-api/index.ts](../src/permissions-api/index.ts), [user.controller.ts](../src/user/application/user.controller.ts).
+Reference: [adr-rbac-contract-ssot.md](./adr-rbac-contract-ssot.md), [permissions-api/index.ts](../src/permissions-api/index.ts), [user.controller.ts](../src/user/application/user.controller.ts).
 
 ## Components
 
-### Action (`action.enum.ts`)
+### Action (`src/permissions-api/action.enum.ts`)
 
-Enum with available operations:
+Enum with available operations (`CREATE`, `READ`, `UPDATE`, `DELETE`).
 
-```typescript
-export enum Action {
-  CREATE = 'create',
-  READ = 'read',
-  UPDATE = 'update',
-  DELETE = 'delete',
-}
-```
+### Subject (`src/permissions-api/subject.enum.ts`)
 
-### Subject (`subject.enum.ts`)
+Enum with system resources (e.g. `USER = 'User'`).
 
-Enum with system resources:
-
-```typescript
-export enum Subject {
-  USER = 'User',
-}
-```
-
-To add a new resource, simply include it in the enum and expand the `POLICY_MAP`.
+To add a new resource, extend `Subject` in `permissions-api` and expand `POLICY_MAP` in `auth/authorization`.
 
 ### AbilityFactory (`ability-factory.ts`)
 
@@ -144,7 +131,7 @@ ability.can(Action.DELETE, Subject.USER);  // false
 ability.cannot(Action.DELETE, Subject.USER); // true
 ```
 
-### CheckPermissions (`check-permissions.decorator.ts`)
+### CheckPermissions (`src/permissions-api/check-permissions.decorator.ts`)
 
 Decorator that sets the `PermissionRequirement` (action + subject) as route metadata, consumed by the `PermissionsGuard`.
 
@@ -170,26 +157,37 @@ The guard:
 ## File structure
 
 ```
-src/auth/authorization/
-  index.ts                       — Barrel exports (auth-internal)
-  action.enum.ts                 — Actions enum (CREATE, READ, UPDATE, DELETE)
-  subject.enum.ts                — Resources enum (USER)
+src/permissions-api/              — Contract SSOT
+  action.enum.ts
+  subject.enum.ts
+  check-permissions.decorator.ts
+  permission-checker.port.ts
+  index.ts
+
+src/auth/authorization/           — Implementation
+  index.ts                       — Re-exports facade + implementation barrel
   policy-map.ts                  — Role → permissions matrix
   ability-factory.ts             — Generates Ability with can()/cannot()
   ability-permission-checker.ts  — IPermissionChecker adapter
-  check-permissions.decorator.ts — @CheckPermissions decorator
   permissions.guard.ts           — Global guard that checks permissions
-
-src/permissions-api/
-  index.ts                       — Public facade for other modules (e.g. user)
-  permission-checker.port.ts     — IPermissionChecker interface
 ```
+
+## Adding permissions (checklist)
+
+Use this when introducing a new **action**, **subject**, or protected route:
+
+1. **Contract** — Add or extend `Action` / `Subject` in `src/permissions-api/` (`action.enum.ts`, `subject.enum.ts`).
+2. **Policy** — Extend `POLICY_MAP` in `src/auth/authorization/policy-map.ts` for each `UserRole` that should have the permission.
+3. **HTTP** — Apply `@CheckPermissions({ action, subject })` on controllers; import `Action`, `Subject`, `CheckPermissions` from `permissions-api` (see [user.controller.ts](../src/user/application/user.controller.ts)).
+4. **Verify** — `npm run verify` (boundaries + unit + e2e) and add/adjust guard specs under `auth/authorization/*.spec.ts` if behavior changes.
+
+Do not add role checks with raw `if (user.role)` in services — keep the matrix in `POLICY_MAP`.
 
 ## How to add a new resource
 
 Example: adding authorization for a `Product` resource.
 
-**1. Add to the subjects enum:**
+**1. Add to the subjects enum** (`src/permissions-api/subject.enum.ts`):
 
 ```typescript
 export enum Subject {

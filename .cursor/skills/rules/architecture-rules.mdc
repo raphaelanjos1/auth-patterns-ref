@@ -1,0 +1,27 @@
+---
+description: Core architecture principles
+globs: []
+alwaysApply: true
+---
+
+# auth-patterns-ref Architecture Principles
+
+**You MUST read the docs below when:**
+
+| Topic | Document |
+|-------|----------|
+| Module map, cross-context imports | `docs/ARCHITECTURE-GUIDELINES.md` |
+| Feature folders inside a bounded context | `docs/FEATURE-FOLDERS-GUIDELINES.md` |
+| Ports, services, DI, DTOs | `docs/coding-patterns.md` |
+| Strategic DDD / domain identification | `docs/DOMAIN-IDENTIFICATION-GUIDELINES.md` |
+| Broader modular monolith patterns | `docs/MODULAR-ARCHITECTURE-GUIDELINES.md` |
+
+**Load when:**
+- Creating or modifying module structure
+- Questions about architectural patterns
+- Naming conventions for services/entities/DTOs
+- Feature folder patterns
+- Domain boundaries and dependencies
+
+**How to load it:**
+Use the `read_file` tool to load the file before providing architectural guidance.

@@ -1,6 +1,5 @@
 import type { UserRole } from '@generated/prisma';
-import { Action } from './action.enum';
-import { Subject } from './subject.enum';
+import { Action, Subject } from '../../permissions-api';
 
 export interface Permission {
   action: Action;

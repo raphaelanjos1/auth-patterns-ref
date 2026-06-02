@@ -3,8 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PermissionsGuard } from './permissions.guard';
 import { AbilityPermissionChecker } from './ability-permission-checker';
-import { Action } from './action.enum';
-import { Subject } from './subject.enum';
+import { Action, Subject } from '../../permissions-api';
 
 describe('PermissionsGuard', () => {
   let guard: PermissionsGuard;
